@@ -27,9 +27,9 @@ installa, ma mostra ancora una schermata segnaposto.
 
 ```
 app/                 app Android — Kotlin, Jetpack Compose, Material 3
-core/teamdraw/       motore di sorteggio — Kotlin puro, zero dipendenze
+core/teamdraw/       motore di sorteggio, profili e voto — Kotlin puro
 db/migrations/       schema Postgres, con trigger e Row Level Security
-docs/                impianto tecnico e guida al build
+docs/                impianto tecnico e guida a build e pubblicazione
 tools/proto/         prototipo Python usato per validare l'algoritmo
 ```
 
@@ -69,12 +69,17 @@ La soluzione: si generano 60 partizioni indipendenti, ciascuna raffinata con una
 ricerca locale, e poi si **estrae a sorte fra tutte quelle entro l'8% dalla
 migliore**. Il seme viene salvato, quindi un sorteggio è sempre riproducibile.
 
+La varietà però ha bisogno dello storico: con una rosa fissa e storico vuoto
+escono solo 9 formazioni distinte su 25, con lo storico che si accumula 25 su 25.
+È la penalità anti-ripetizione a fare il lavoro, e riguarda il primo sorteggio di
+ogni gruppo nuovo.
+
 Una funzione di costo somma ciò che rende sgradevole una divisione: scarto di
 forza complessivo, squilibrio per reparto, differenza fra i due più forti,
 coppie che finiscono sempre insieme, e una penalità leggera per chi gioca fuori
 ruolo.
 
-### Nessuno ha un ruolo fisso
+### I ruoli di movimento non sono fissi
 
 Il ruolo non si dichiara all'iscrizione — se si dichiarasse, si dichiarerebbero
 tutti attaccanti — ma si deduce da come è andata in campo. Ogni giocatore ha una
@@ -107,9 +112,10 @@ Prima ancora, la versione che trattava la porta come un costo da bilanciare
 schierava i portieri veri in campo, perché due improvvisati sono più *simili fra
 loro* di due bravi e così il conto tornava prima.
 
-Quando i portieri mancano — che è la norma: su 40 partite simulate solo 24 ne
-avevano due — l'app divide i minuti fra tre giocatori e dà la precedenza a chi
-in porta ci è finito meno volte.
+Quando i portieri mancano — che è la norma, non l'eccezione: su 40 partite
+simulate solo 24 ne avevano due — l'app divide i minuti fra tre giocatori e dà
+la precedenza a chi in porta ci è finito meno volte. Senza quel criterio, chi ha
+qualche riflesso in più diventa il portiere fisso della comitiva.
 
 ### Quando non si sa, lo si dice
 
@@ -146,17 +152,18 @@ I numeri qui sotto escono dal motore compilato, non da una stima.
 
 | | 7v7 | 8v8 |
 |---|---|---|
-| Scarto di forza fra le squadre | 0,28% | 0,35% |
+| Scarto di forza fra le squadre | 0,28% | 0,22% |
 | Formazioni distinte su 40 partite | 40/40 | 40/40 |
 | Violazioni del vincolo portiere | 0/40 | 0/40 |
-| Tempo per sorteggio | ~87 ms | ~90 ms |
+| Tempo per sorteggio | ~87 ms | ~109 ms |
 
 Partendo da **zero dati** sui ruoli di movimento, con i soli voti dei compagni:
 dopo 10 partite 18 giocatori su 20 hanno un'etichetta e sono tutte corrette;
 dopo una stagione, 20 su 20.
 
-Nello scenario peggiore della porta — rosa di 16 senza nemmeno un portiere di
-ruolo, 40 partite — tutti e 16 hanno fatto fra 280 e 320 minuti fra i pali.
+Nello scenario peggiore della porta — rosa di 16 senza nemmeno un portiere
+dichiarato, 40 partite — tutti e 16 hanno fatto esattamente 300 minuti fra i
+pali.
 
 ## Le skill
 
@@ -164,11 +171,14 @@ Sette attributi su scala 1–99: velocità, tiro, passaggio, tecnica, difesa,
 fisico, parate. Tutti partono da 50, e chi organizza alza i valori iniziali di
 chi già si sa che gioca bene.
 
-Il valore in campo si calcola sempre rispetto al ruolo, perché un ottimo
-difensore schierato in attacco non è più un ottimo giocatore. Le skill crescono
-sullo scarto fra rendimento e media personale, non sul numero assoluto di gol:
-due gol sono un risultato notevole per un difensore e una serata normale per un
-attaccante.
+Il valore in campo si calcola sempre rispetto al ruolo, con pesi diversi per
+reparto, moltiplicato per l'affinità di quel giocatore a quella zona del campo.
+
+Le skill si muovono con le nomine ricevute, ognuna sulla voce che le compete. Il
+freno contro l'inflazione è nei rendimenti decrescenti: salire da 92 costa molto
+più che da 50. Senza quel freno, dopo un anno la comitiva è tutta a 99 e i numeri
+non dicono più niente. Ogni variazione è tracciata, così si può sempre rispondere
+a «perché sono sceso?».
 
 Dettagli in [docs/impianto-tecnico.md](docs/impianto-tecnico.md).
 

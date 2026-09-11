@@ -51,7 +51,9 @@ nuova implementazione, non riscrivere l'app.
 ./gradlew assembleDebug         # APK installabile
 ```
 
-Per l'ambiente, la firma, il Play Store e la pubblicazione della web app:
+Per avere la web app in mano e farla provare agli altri, il percorso più corto
+è **[docs/primo-avvio.md](docs/primo-avvio.md)**: venti minuti, e non serve né
+l'ambiente Android né un server. Per la firma, il Play Store e il resto:
 **[docs/build-e-deploy.md](docs/build-e-deploy.md)**.
 
 Il database va creato una volta sola su Supabase eseguendo

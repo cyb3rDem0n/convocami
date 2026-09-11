@@ -102,37 +102,70 @@ function chiudiCanale() {
 // Accesso
 // ---------------------------------------------------------------------------
 
-function schermataAccesso() {
+function schermataAccesso(modo = "entra") {
   barra.hidden = true;
+  const registrazione = modo === "registrati";
+
   mostra(`
     <h1>CallMeUp</h1>
     <p class="sotto">Organizza il calcetto senza rincorrere nessuno su WhatsApp.</p>
+
     <form id="form-accesso">
-      <label for="email">La tua email</label>
-      <input id="email" type="email" required autocomplete="email" placeholder="nome@esempio.it">
+      <label for="email">Email</label>
+      <input id="email" type="email" required autocomplete="email"
+             inputmode="email" placeholder="nome@esempio.it">
+
+      <label for="password">Password</label>
+      <input id="password" type="password" required minlength="8"
+             autocomplete="${registrazione ? "new-password" : "current-password"}"
+             placeholder="${registrazione ? "almeno 8 caratteri" : ""}">
+
+      ${registrazione ? `
+        <label for="nome">Come ti chiamano</label>
+        <input id="nome" required placeholder="Giuseppe">` : ""}
+
       <div class="azioni">
-        <button class="primario" type="submit">Mandami il link per entrare</button>
+        <button class="primario" type="submit">${registrazione ? "Crea il mio accesso" : "Entra"}</button>
+        <button class="testo" type="button" id="cambia-modo">
+          ${registrazione ? "Ho gia un accesso" : "E la prima volta che entro"}
+        </button>
       </div>
     </form>
-    <p class="mini">Niente password: ti arriva un link via email, lo apri ed sei dentro.</p>
   `);
+
+  document.getElementById("cambia-modo").addEventListener("click", () =>
+    schermataAccesso(registrazione ? "entra" : "registrati"));
 
   document.getElementById("form-accesso").addEventListener("submit", async (ev) => {
     ev.preventDefault();
     const email = document.getElementById("email").value.trim();
-    const bottone = ev.target.querySelector("button");
-    await conAttesa(bottone, "Invio…", async () => {
-      const { error } = await db.auth.signInWithOtp({
-        email,
-        options: { emailRedirectTo: location.origin + location.pathname },
-      });
-      if (error) throw error;
-      mostra(`
-        <h1>Controlla la posta</h1>
-        <p class="sotto">Ho mandato un link a <strong>${esc(email)}</strong>.
-        Aprilo da questo telefono e sei dentro.</p>
-        <p class="mini">Se non arriva entro un minuto, guarda nello spam.</p>
-      `);
+    const password = document.getElementById("password").value;
+    const nome = document.getElementById("nome")?.value.trim();
+
+    await conAttesa(ev.target.querySelector("button"), "Un attimo…", async () => {
+      if (registrazione) {
+        const { error } = await db.auth.signUp({
+          email, password, options: { data: { nome } },
+        });
+        if (error) throw error;
+        // con la conferma via email disattivata la sessione arriva subito;
+        // se invece e attiva, signUp non autentica e bisogna aprire il link
+        const { data } = await db.auth.getSession();
+        if (!data?.session) {
+          mostra(`
+            <h1>Controlla la posta</h1>
+            <p class="sotto">Ti ho mandato un link di conferma a
+            <strong>${esc(email)}</strong>. Aprilo e poi torna qui.</p>
+          `);
+        }
+      } else {
+        const { error } = await db.auth.signInWithPassword({ email, password });
+        if (error) {
+          throw /invalid login credentials/i.test(error.message)
+            ? new Error("Email o password non corrispondono. Se e la prima volta, registrati.")
+            : error;
+        }
+      }
     });
   });
 }
@@ -501,6 +534,14 @@ async function schermataProfilo() {
 async function caricaProfilo() {
   const { data } = await db.from("profiles").select("*").eq("id", utente.id).maybeSingle();
   profilo = data;
+
+  // il trigger crea il profilo con la parte dell'email prima della chiocciola:
+  // se in registrazione e stato indicato un nome vero, vince quello
+  const scelto = utente.user_metadata?.nome;
+  if (scelto && profilo && profilo.nome !== scelto && profilo.nome === utente.email?.split("@")[0]) {
+    await db.from("profiles").update({ nome: scelto }).eq("id", utente.id);
+    profilo.nome = scelto;
+  }
 }
 
 async function caricaGruppo() {

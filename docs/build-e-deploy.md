@@ -199,11 +199,13 @@ chiave anon è pubblica:
 ### Due cose da configurare in Supabase
 
 In *Authentication → URL Configuration* aggiungi l'indirizzo Vercel fra i
-**Redirect URLs** e come **Site URL**, altrimenti il link che arriva via email
-rimanda a localhost e nessuno riesce a entrare.
+**Redirect URLs** e come **Site URL**.
 
-Sempre lì, controlla che *Enable email provider* sia attivo: l'accesso è senza
-password, tutto passa da quel link.
+In *Authentication → Providers → Email*, tieni **Confirm email spento** finché
+non configuri un SMTP tuo: l'email integrata di Supabase manda 2 messaggi
+all'ora e solo a indirizzi del tuo team, quindi con la conferma accesa i tuoi
+amici non riuscirebbero a registrarsi. Il dettaglio è in
+[`primo-avvio.md`](primo-avvio.md).
 
 ---
 

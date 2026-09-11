@@ -43,7 +43,12 @@ object Simulazione {
             val parate = if (vero == Ruolo.POR) (bravura + 18).coerceAtMost(95.0)
             else gauss(rng, 25.0, 6.0).coerceIn(15.0, 95.0)
             Vero(
-                Giocatore("p$i", NOMI[i % NOMI.size], Skill(a(), a(), a(), a(), a(), a(), parate)),
+                Giocatore(
+                    "p$i", NOMI[i % NOMI.size], Skill(a(), a(), a(), a(), a(), a(), parate),
+                    // chi para lo si sa dal primo giorno: il portiere si dichiara,
+                    // non si deduce. Tutti gli altri partono senza ruolo.
+                    if (vero == Ruolo.POR) Propensione.portiere() else Propensione.NUOVA,
+                ),
                 vero, bravura,
             )
         }
@@ -82,6 +87,8 @@ object Simulazione {
      * dove — usando solo le nomine dei compagni, come nella realta.
      */
     fun convergenza(partite: Int = 40, seme: Long = 11) {
+        // I portieri sono gia dichiarati: quello che si deve dedurre sono i
+        // ruoli di movimento, che e l'unica cosa deducibile.
         val rng = Random(seme)
         var rosa = rosaVera(rng)
         val turni = HashMap<String, Int>()
@@ -135,7 +142,7 @@ object Simulazione {
         println("  livelli dichiarati: " +
             livelli.entries.sortedBy { it.key.ordinal }.joinToString { "${it.key}=${it.value}" })
         println("")
-        println("  etichette finali:")
+        println("  etichette finali (i portieri erano dichiarati in partenza):")
         for (v in rosa.sortedBy { it.ruoloVero.ordinal }) {
             val segno = when {
                 v.giocatore.propensione.etichetta == v.ruoloVero -> "ok"

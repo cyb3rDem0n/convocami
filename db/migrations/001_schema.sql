@@ -133,9 +133,26 @@ create table player_roles (
   partite_valutate int not null default 0 check (partite_valutate >= 0),
   profilo_iniziale position_code,
 
+  -- Il portiere e l'eccezione: non si deduce, si dichiara.
+  --
+  -- Fare il portiere e un'identita, non una cosa in cui si scivola dopo dieci
+  -- minuti buoni fra i pali: chi para para tutte le domeniche. Questo flag lo
+  -- mette la persona iscrivendosi o l'organizzatore, e nessuna votazione lo
+  -- tocca. Senza questa eccezione, un centrocampista che se la cava durante una
+  -- turnazione raccoglie nomine per le parate, si ritrova etichettato portiere,
+  -- e il vincolo lo spedisce fra i pali per sempre.
+  portiere         boolean not null default false,
+
   updated_at       timestamptz not null default now(),
-  primary key (group_id, profile_id)
+  primary key (group_id, profile_id),
+
+  constraint portiere_coerente check (
+    not portiere or profilo_iniziale is null or profilo_iniziale = 'POR'
+  )
 );
+
+-- Solo chi organizza puo nominare o esonerare un portiere.
+create index on player_roles (group_id) where portiere;
 
 -- ---------------------------------------------------------------------------
 -- Partite
@@ -548,8 +565,24 @@ create policy "leggi skill"     on player_ratings for select using (e_membro(gro
 create policy "admin tara skill" on player_ratings for all using (e_admin(group_id));
 
 create policy "leggi ruoli"     on player_roles for select using (e_membro(group_id));
-create policy "il profilo di partenza lo scelgo io" on player_roles for all
+-- Il profilo di partenza e la propensione dedotta li puo toccare il diretto
+-- interessato; il flag 'portiere' invece resta all'organizzatore, perche e un
+-- vincolo sul sorteggio e non una preferenza personale.
+create policy "il mio profilo lo gestisco io" on player_roles for all
   using (profile_id = auth.uid() or e_admin(group_id));
+
+create function portiere_solo_admin() returns trigger
+language plpgsql as $$
+begin
+  if new.portiere is distinct from old.portiere and not e_admin(new.group_id) then
+    raise exception 'Solo chi organizza puo nominare o esonerare un portiere';
+  end if;
+  return new;
+end $$;
+
+create trigger trg_portiere_solo_admin
+  before update of portiere on player_roles
+  for each row execute function portiere_solo_admin();
 
 create policy "leggi partite"   on matches for select using (e_membro(group_id));
 create policy "admin crea partita" on matches for insert with check (e_admin(group_id));

@@ -723,3 +723,120 @@ class ProfiloDiPartenzaTest {
         assertTrue(profilo.values.all { it in 0.0..1.0 })
     }
 }
+
+/**
+ * Il portiere e il caso speciale: si dichiara e non si deduce.
+ *
+ * Se uno e indicato portiere nel suo profilo, in porta ci va praticamente
+ * sempre; e se per una volta deve giocare in campo, e l'organizzatore a
+ * spostarlo. Il contrario dev'essere altrettanto vero: chi portiere non e non
+ * deve poterlo diventare per via dei voti.
+ */
+class PortiereTest {
+
+    private fun campo(n: Int, parate: Double = 25.0) =
+        Giocatore("p$n", "Giocatore$n", Skill(parate = parate), Propensione.diPartenza(Ruolo.CEN))
+
+    private fun tra_i_pali(n: Int) =
+        Giocatore("p$n", "Portiere$n", Skill(parate = 80.0), Propensione.portiere())
+
+    @Test
+    fun `chi e dichiarato portiere ha subito l'etichetta, senza aspettare partite`() {
+        val p = Propensione.portiere()
+        assertEquals(Ruolo.POR, p.etichetta)
+        assertEquals("Portiere", p.etichettaTesto)
+        assertTrue(p.portiere)
+        assertEquals(1.0, p.confidenza, "Su chi para non c'e incertezza da accumulare")
+    }
+
+    /** Il caso Fabio: un centrocampista che se la cava durante una turnazione. */
+    @Test
+    fun `chi para bene per una stagione intera non diventa portiere`() {
+        var g = campo(1)
+        repeat(40) {
+            g = Crescita.applica(g, RendimentoPartita("p1", mapOf(Fase.PORTA to 1.0)))
+        }
+        assertTrue(!g.propensione.portiere, "Un voto non puo promuovere nessuno a portiere")
+        assertTrue(
+            g.propensione.etichetta != Ruolo.POR,
+            "Etichettato portiere dai soli voti: ${g.etichetta}",
+        )
+        // il merito pero si vede: parera meglio degli altri quando serve improvvisare
+        assertTrue(g.skill.parate > 25.0, "Le parate devono comunque essere salite")
+    }
+
+    @Test
+    fun `un portiere resta portiere anche se lo votano per l'attacco`() {
+        var g = tra_i_pali(1)
+        repeat(40) {
+            g = Crescita.applica(g, RendimentoPartita("p1", mapOf(Fase.ATTACCO to 1.0)))
+        }
+        assertTrue(g.propensione.portiere)
+        assertEquals(Ruolo.POR, g.propensione.etichetta)
+        assertEquals("Portiere", g.etichetta)
+    }
+
+    @Test
+    fun `la propensione al ruolo di portiere non si muove con i voti`() {
+        val prima = Propensione.diPartenza(Ruolo.CEN)
+        val dopo = prima.dopoLaVotazione(mapOf(Fase.PORTA to 1.0, Fase.REGIA to 1.0))
+        assertEquals(prima.peso(Ruolo.POR), dopo.peso(Ruolo.POR))
+        assertTrue(dopo.peso(Ruolo.CEN) > prima.peso(Ruolo.CEN), "La regia invece deve muoversi")
+    }
+
+    @Test
+    fun `i portieri dichiarati vanno in porta, gli altri no`() {
+        val rosa = listOf(tra_i_pali(0), tra_i_pali(1)) + (2 until 14).map { campo(it, parate = 70.0) }
+        repeat(25) { i ->
+            val f = SorteggioSquadre.sorteggia(rosa, 7, seed = i.toLong())
+            assertEquals(
+                setOf("p0", "p1"),
+                setOf(f.squadraA[0].giocatore.id, f.squadraB[0].giocatore.id),
+                "Seme $i: in porta e finito qualcuno che non e portiere",
+            )
+            assertEquals(ModalitaPorta.REGOLARE, f.modalitaPorta)
+        }
+    }
+
+    /**
+     * Con un portiere solo, nessun giocatore di movimento deve poter finire
+     * nell'altra porta al posto suo: l'unico portiere resta sempre fra i pali.
+     */
+    @Test
+    fun `l'unico portiere non viene mai messo in campo`() {
+        val rosa = listOf(tra_i_pali(0)) + (1 until 14).map { campo(it, parate = 70.0) }
+        repeat(25) { i ->
+            val f = SorteggioSquadre.sorteggia(rosa, 7, seed = i.toLong())
+            val inPorta = setOf(f.squadraA[0].giocatore.id, f.squadraB[0].giocatore.id)
+            assertTrue("p0" in inPorta, "Seme $i: il portiere e stato schierato in campo")
+            assertEquals(ModalitaPorta.UNO_SOLO, f.modalitaPorta)
+        }
+    }
+
+    @Test
+    fun `il portiere non entra nella turnazione dell'altra squadra`() {
+        val rosa = listOf(tra_i_pali(0)) + (1 until 14).map { campo(it) }
+        val f = SorteggioSquadre.sorteggia(rosa, 7, seed = 3)
+        assertTrue(
+            f.pianoPorta.none { it.giocatoreId == "p0" },
+            "Il portiere di ruolo non va messo a turni: sta in porta e basta",
+        )
+    }
+
+    @Test
+    fun `l'organizzatore puo togliere o dare il ruolo di portiere`() {
+        val era = Propensione.portiere()
+        val ora = era.copy(portiere = false, profiloIniziale = null)
+        assertTrue(ora.etichetta != Ruolo.POR, "Deve poter smettere, ma solo per mano dell'admin")
+
+        val promosso = Propensione.diPartenza(Ruolo.ATT).copy(portiere = true, profiloIniziale = null)
+        assertEquals(Ruolo.POR, promosso.etichetta)
+    }
+
+    @Test
+    fun `un portiere non puo avere un profilo iniziale di movimento`() {
+        assertFailsWith<IllegalArgumentException> {
+            Propensione.portiere().copy(profiloIniziale = Ruolo.ATT)
+        }
+    }
+}

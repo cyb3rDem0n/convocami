@@ -9,7 +9,7 @@ Il nome è *call-up*, la convocazione.
 
 ## Stato
 
-**Fase 0 — impianto.** Il motore di sorteggio è scritto, coperto da 54 test e funzionante;
+**Fase 0 — impianto.** Il motore di sorteggio è scritto, coperto da 63 test e funzionante;
 lo schema del database è pronto da eseguire; l'app Android si compila e si
 installa, ma mostra ancora una schermata segnaposto.
 
@@ -47,7 +47,7 @@ nuova implementazione, non riscrivere l'app.
 ## Partire
 
 ```bash
-./gradlew :core:teamdraw:test   # 54 test del motore
+./gradlew :core:teamdraw:test   # 63 test del motore
 ./gradlew assembleDebug         # APK installabile
 ```
 
@@ -90,13 +90,22 @@ L'etichetta compare solo con abbastanza partite e un distacco netto. Altrimenti
 resta **Jolly**, che non è l'assenza di un dato ma un'etichetta positiva, e nel
 calcetto è anche la più frequente.
 
-### Il portiere invece è un vincolo
+### Il portiere invece si dichiara, ed è un vincolo
 
-I ruoli di movimento si mescolano, la porta no. Se fra i convocati c'è chi para
-di mestiere, gioca in porta, e nessuna ottimizzazione può spostarlo. La versione
-che lo trattava come un costo schierava i portieri veri in campo, perché due
-improvvisati sono più *simili fra loro* di due bravi, e così il conto tornava
-prima.
+Fare il portiere è un'identità, non una cosa in cui si scivola dopo dieci minuti
+buoni fra i pali: chi para, para tutte le domeniche. Quindi quel ruolo non si
+deduce dai voti — lo imposta la persona iscrivendosi o l'organizzatore — e in
+porta ci va, senza che nessuna ottimizzazione possa spostarlo. Se per una volta
+deve giocare in campo, è l'organizzatore a farlo a mano.
+
+L'esclusione vale in entrambe le direzioni, ed è la seconda che sorprende: un
+centrocampista che se la cava durante una turnazione raccoglie nomine per le
+parate e, senza questa regola, si ritroverebbe etichettato portiere e poi
+spedito fra i pali dal vincolo, per sempre.
+
+Prima ancora, la versione che trattava la porta come un costo da bilanciare
+schierava i portieri veri in campo, perché due improvvisati sono più *simili fra
+loro* di due bravi e così il conto tornava prima.
 
 Quando i portieri mancano — che è la norma: su 40 partite simulate solo 24 ne
 avevano due — l'app divide i minuti fra tre giocatori e dà la precedenza a chi
@@ -142,9 +151,9 @@ I numeri qui sotto escono dal motore compilato, non da una stima.
 | Violazioni del vincolo portiere | 0/40 | 0/40 |
 | Tempo per sorteggio | ~87 ms | ~90 ms |
 
-Partendo da **zero dati**, con i soli voti dei compagni, dopo 10 partite 15
-giocatori su 20 hanno un'etichetta e sono tutte corrette; dopo una stagione, 17
-su 18 etichettati correttamente.
+Partendo da **zero dati** sui ruoli di movimento, con i soli voti dei compagni:
+dopo 10 partite 18 giocatori su 20 hanno un'etichetta e sono tutte corrette;
+dopo una stagione, 20 su 20.
 
 Nello scenario peggiore della porta — rosa di 16 senza nemmeno un portiere di
 ruolo, 40 partite — tutti e 16 hanno fatto fra 280 e 320 minuti fra i pali.

@@ -12,10 +12,14 @@ import kotlin.random.Random
  *
  * Tre principi, tutti e tre presi dal campo e non dal codice:
  *
- *  1. NESSUNO HA UN RUOLO FISSO. Il ruolo non si dichiara: si deduce da dove si
- *     e giocato e da come e andata (vedi [Propensione]). Chi e nuovo non ha
- *     ruolo, e non e un problema da aggirare.
- *  2. IL PORTIERE E UN VINCOLO. I ruoli di movimento si mescolano, la porta no.
+ *  1. I RUOLI DI MOVIMENTO NON SONO FISSI. Non si dichiarano: si deducono da
+ *     dove si e giocato e da come e andata (vedi [Propensione]). Chi e nuovo non
+ *     ha ruolo, e non e un problema da aggirare.
+ *  2. IL PORTIERE INVECE SI DICHIARA, ED E UN VINCOLO. Fare il portiere e
+ *     un'identita, non una cosa in cui si scivola dopo dieci minuti buoni fra i
+ *     pali: chi para para tutte le domeniche. Il flag lo mette la persona o
+ *     l'organizzatore, nessun voto lo tocca, e se per una volta il portiere
+ *     deve giocare in campo lo sposta l'organizzatore a mano.
  *  3. QUANDO NON SI SA, LO SI DICE. Senza dati sufficienti il sorteggio non
  *     finge: sorteggia a caso e lo dichiara ([LivelloInformazione]).
  *
@@ -265,6 +269,11 @@ private data class SceltaPorta(
  * due improvvisati fra i pali, perche due improvvisati sono piu simili fra loro
  * di due bravi e cosi il conto torna prima.
  *
+ * Chi e portiere lo dice il suo profilo, non i voti: un centrocampista che se
+ * l'e cavata bene durante una turnazione non diventa il portiere della
+ * comitiva. Se per una volta il portiere deve giocare in campo, lo sposta
+ * l'organizzatore a mano.
+ *
  * Quando i portieri sono uno o zero — che nel calcetto e la norma piu che
  * l'eccezione — si improvvisa, ma con un criterio: prima chi in porta ci e
  * andato meno volte, e solo a parita di turni chi para meglio.
@@ -272,9 +281,7 @@ private data class SceltaPorta(
 private fun scegliPortieri(
     convocati: List<Giocatore>, rng: Random, turni: TurniInPorta, p: ParametriRuolo,
 ): SceltaPorta {
-    val portieri = convocati
-        .filter { it.propensione.etichetta == Ruolo.POR }
-        .shuffled(rng)
+    val portieri = convocati.filter { it.propensione.portiere }.shuffled(rng)
 
     if (portieri.size >= 2) {
         val due = portieri.sortedByDescending { it.ovr(Ruolo.POR, p) }
@@ -293,7 +300,7 @@ private fun scegliPortieri(
 private fun ordinaRipieghi(
     candidati: List<Giocatore>, turni: TurniInPorta, rng: Random, p: ParametriRuolo,
 ): List<Giocatore> = candidati
-    .filter { it.propensione.etichetta != Ruolo.POR }
+    .filter { !it.propensione.portiere }
     .map { g ->
         // meno turni fatti = molto meglio; a parita, chi para di piu.
         // il rumore evita che con i contatori a zero esca sempre lo stesso.
@@ -546,7 +553,7 @@ object SorteggioSquadre {
     ): List<TurnoPorta> = buildList {
         for ((lato, rosa) in listOf(Squadra.A to s.a, Squadra.B to s.b)) {
             val portiere = rosa[0].giocatore
-            if (portiere.propensione.etichetta == Ruolo.POR) continue
+            if (portiere.propensione.portiere) continue
             addAll(pianoPerSquadra(lato, rosa, portiere, durataMin, turni, rng, p))
         }
     }

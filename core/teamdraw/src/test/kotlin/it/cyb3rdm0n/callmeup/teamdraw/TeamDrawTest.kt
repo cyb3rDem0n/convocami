@@ -1,21 +1,23 @@
 package it.cyb3rdm0n.callmeup.teamdraw
 
+import kotlin.math.abs
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
- * I test che contano sono quelli che difendono i due difetti trovati in
- * simulazione durante la progettazione, perche sono difetti che non fanno
- * fallire nulla: producono squadre plausibili e sbagliate.
+ * I test che contano di piu sono quelli che difendono i difetti trovati in
+ * simulazione, perche sono difetti che non fanno fallire niente: producono
+ * squadre plausibili e sbagliate.
  *
- *  1. senza penalita esplicita l'ottimizzatore schiera la gente fuori ruolo
- *     per abbassarne il valore e pareggiare i conti;
- *  2. se il portiere e un termine di costo invece che un vincolo, due portieri
- *     scarsi "pareggiano" meglio di due bravi e i portieri veri finiscono in
- *     campo.
+ *  1. il fuori ruolo come leva per pareggiare le squadre;
+ *  2. il portiere trattato come costo invece che come vincolo;
+ *  3. la varieta che senza storico si affloscia;
+ *  4. l'app che finge di sapere dove mettere gente di cui non sa niente.
  */
 class TeamDrawTest {
 
@@ -25,16 +27,15 @@ class TeamDrawTest {
 
     private fun giocatore(
         n: Int,
-        ruolo: Ruolo,
+        ruolo: Ruolo? = null,
         livello: Double = 50.0,
         parate: Double = 25.0,
-        secondari: Set<Ruolo> = emptySet(),
+        partite: Int = Propensione.PARTITE_PER_CONFIDENZA_PIENA.toInt(),
     ) = Giocatore(
         id = "p$n",
         nome = "Giocatore$n",
         skill = Skill(livello, livello, livello, livello, livello, livello, parate),
-        ruoloPrimario = ruolo,
-        ruoliSecondari = secondari,
+        propensione = if (ruolo == null) Propensione.NUOVA else Propensione.dichiarata(ruolo, partite),
     )
 
     /** Rosa con la dotazione esatta di ruoli per un 7v7: 2 POR, 4 DIF, 6 CEN, 2 ATT. */
@@ -50,19 +51,146 @@ class TeamDrawTest {
 
     private fun Formazione.tutti() = squadraA + squadraB
 
-    // ---------------------------------------------------------------------
-    // Il portiere e un vincolo, non un costo
-    // ---------------------------------------------------------------------
+    // =====================================================================
+    // Nessuno ha un ruolo fisso
+    // =====================================================================
 
     @Test
-    fun `con due portieri di ruolo entrambi stanno in porta`() {
+    fun `un giocatore nuovo non ha etichetta e nessun ruolo lo penalizza`() {
+        val g = giocatore(0)
+        assertNull(g.propensione.etichetta)
+        assertEquals("Nuovo", g.etichetta)
+        assertEquals(0.0, g.propensione.confidenza)
+
+        // il punto: senza dati, schierarlo ovunque costa esattamente uguale
+        for (r in Ruolo.entries) {
+            assertEquals(1.0, g.propensione.affinita(r), "Affinita alterata per $r senza dati")
+        }
+        assertEquals(g.ovrBase(Ruolo.ATT), g.ovr(Ruolo.ATT))
+    }
+
+    @Test
+    fun `l'etichetta non compare finche non ci sono abbastanza partite`() {
+        var p = Propensione.NUOVA
+        repeat(Propensione.PARTITE_MINIME_PER_ETICHETTA - 1) {
+            p = p.dopoLaPartita(Ruolo.DIF, 1.0)
+            assertNull(p.etichetta, "Etichetta assegnata dopo sole ${p.partite} partite")
+            assertEquals("Nuovo", p.etichettaTesto)
+        }
+        p = p.dopoLaPartita(Ruolo.DIF, 1.0)
+        assertEquals(Ruolo.DIF, p.etichetta)
+        assertEquals("Difensore", p.etichettaTesto)
+    }
+
+    @Test
+    fun `chi rende uguale ovunque e un jolly, non un dato mancante`() {
+        var p = Propensione.NUOVA
+        repeat(3) {
+            p = p.dopoLaPartita(Ruolo.DIF, 0.6)
+                .dopoLaPartita(Ruolo.CEN, 0.6)
+                .dopoLaPartita(Ruolo.ATT, 0.6)
+        }
+        assertTrue(p.partite >= Propensione.PARTITE_MINIME_PER_ETICHETTA)
+        assertNull(p.etichetta, "Con rendimento uguale ovunque non deve uscire un ruolo")
+        assertEquals("Jolly", p.etichettaTesto)
+    }
+
+    @Test
+    fun `la confidenza cresce con le partite e satura`() {
+        var p = Propensione.NUOVA
+        var precedente = 0.0
+        repeat(Propensione.PARTITE_PER_CONFIDENZA_PIENA.toInt()) {
+            p = p.dopoLaPartita(Ruolo.CEN, 0.5)
+            assertTrue(p.confidenza >= precedente)
+            precedente = p.confidenza
+        }
+        assertEquals(1.0, p.confidenza)
+        p = p.dopoLaPartita(Ruolo.CEN, 0.5)
+        assertEquals(1.0, p.confidenza, "La confidenza non deve superare 1")
+    }
+
+    /**
+     * Il rischio della profezia che si autoavvera: se l'etichetta si cementasse,
+     * chi parte difensore resterebbe difensore per sempre. Il decadimento verso
+     * il centro deve consentire di cambiare.
+     */
+    @Test
+    fun `chi cambia modo di giocare puo cambiare etichetta`() {
+        var p = Propensione.NUOVA
+        repeat(8) { p = p.dopoLaPartita(Ruolo.DIF, 0.8) }
+        assertEquals(Ruolo.DIF, p.etichetta)
+
+        repeat(12) { p = p.dopoLaPartita(Ruolo.ATT, 0.9) }
+        assertEquals(Ruolo.ATT, p.etichetta, "L'etichetta si e cementata e non segue piu i fatti")
+    }
+
+    // =====================================================================
+    // Quando non si sa, lo si dice
+    // =====================================================================
+
+    @Test
+    fun `con tutti giocatori nuovi e uguali si dichiara il sorteggio puro`() {
+        val rosa = (0 until 14).map { giocatore(it) }
+        val f = SorteggioSquadre.sorteggia(rosa, 7, seed = 1)
+
+        assertEquals(LivelloInformazione.SORTEGGIO_PURO, f.livello)
+        assertTrue(f.spiegazione().any { "sorteggio puro" in it.lowercase() })
+    }
+
+    /**
+     * Il sorteggio puro dev'essere CASUALE, non un ordine fisso: l'alfabetico
+     * darebbe sempre le stesse due squadre agli stessi quattordici, settimana
+     * dopo settimana, fingendo per giunta di essere un criterio.
+     */
+    @Test
+    fun `il sorteggio puro non e sempre lo stesso`() {
+        val rosa = (0 until 14).map { giocatore(it) }
+        val partizioni = (0 until 20).map { i ->
+            SorteggioSquadre.sorteggia(rosa, 7, seed = i.toLong())
+                .squadraA.map { it.giocatore.id }.toSet()
+        }.toSet()
+
+        assertTrue(partizioni.size >= 15, "Solo ${partizioni.size} divisioni diverse su 20")
+    }
+
+    @Test
+    fun `senza etichette ma con forze diverse si pareggia sui rendimenti`() {
+        val rng = Random(5)
+        val rosa = (0 until 14).map {
+            giocatore(it, ruolo = null, livello = 35.0 + rng.nextDouble() * 40)
+        }
+        val f = SorteggioSquadre.sorteggia(rosa, 7, seed = 3)
+
+        assertEquals(LivelloInformazione.RENDIMENTI, f.livello)
+        val scarto = f.deltaOvr / ((f.forzaA + f.forzaB) / 2)
+        assertTrue(scarto < 0.04, "Scarto ${"%.1f".format(scarto * 100)}% con forze note")
+    }
+
+    @Test
+    fun `con i ruoli noti si dichiara il livello pieno`() {
+        val f = SorteggioSquadre.sorteggia(rosaEsatta(), 7, seed = 2)
+        assertEquals(LivelloInformazione.ETICHETTE, f.livello)
+    }
+
+    @Test
+    fun `la formazione avvisa sempre che i ruoli sono indicativi`() {
+        val f = SorteggioSquadre.sorteggia(rosaEsatta(), 7, seed = 2)
+        assertTrue(f.spiegazione().any { "indicativi" in it })
+    }
+
+    // =====================================================================
+    // Il portiere e un vincolo
+    // =====================================================================
+
+    @Test
+    fun `con due portieri riconosciuti entrambi stanno in porta`() {
         repeat(30) { i ->
             val f = SorteggioSquadre.sorteggia(rosaEsatta(), 7, seed = i.toLong())
             val inPorta = f.portieri()
-            assertTrue(inPorta.all { it.ruolo == Ruolo.POR }, "Lo slot 0 deve essere il portiere")
+            assertTrue(inPorta.all { it.ruolo == Ruolo.POR })
             assertTrue(
-                inPorta.all { it.giocatore.ruoloPrimario == Ruolo.POR },
-                "Seme $i: un portiere di ruolo e stato schierato in campo",
+                inPorta.all { it.giocatore.propensione.etichetta == Ruolo.POR },
+                "Seme $i: un portiere riconosciuto e stato schierato in campo",
             )
             assertEquals(ModalitaPorta.REGOLARE, f.modalitaPorta)
         }
@@ -70,14 +198,14 @@ class TeamDrawTest {
 
     /**
      * Regressione del difetto originale: due portieri MOLTO diversi fra loro.
-     * La versione sbagliata li teneva entrambi fuori dalla porta perche due
+     * La versione sbagliata li teneva entrambi fuori dalla porta, perche due
      * ripieghi scarsi avevano fra loro uno scarto minore.
      */
     @Test
     fun `portieri di forza molto diversa restano comunque in porta`() {
         val rosa = buildList {
-            add(giocatore(0, Ruolo.POR, 80.0, parate = 90.0))   // molto forte
-            add(giocatore(1, Ruolo.POR, 40.0, parate = 45.0))   // molto debole
+            add(giocatore(0, Ruolo.POR, 80.0, parate = 90.0))
+            add(giocatore(1, Ruolo.POR, 40.0, parate = 45.0))
             var i = 2
             repeat(4) { add(giocatore(i++, Ruolo.DIF, 55.0)) }
             repeat(6) { add(giocatore(i++, Ruolo.CEN, 55.0)) }
@@ -85,51 +213,51 @@ class TeamDrawTest {
         }
         repeat(30) { i ->
             val f = SorteggioSquadre.sorteggia(rosa, 7, seed = i.toLong())
-            val idsInPorta = f.portieri().map { it.giocatore.id }.toSet()
             assertEquals(
-                setOf("p0", "p1"), idsInPorta,
-                "Seme $i: i portieri di ruolo devono stare fra i pali anche se impari",
+                setOf("p0", "p1"), f.portieri().map { it.giocatore.id }.toSet(),
+                "Seme $i: i portieri devono stare fra i pali anche se impari",
             )
         }
     }
 
     @Test
-    fun `con un solo portiere di ruolo l'altra squadra si organizza a turni`() {
+    fun `con un solo portiere l'altra squadra si organizza a turni`() {
         val rosa = rosaEsatta().filterNot { it.id == "p1" } + giocatore(99, Ruolo.CEN, 50.0)
         val f = SorteggioSquadre.sorteggia(rosa, 7, seed = 42)
 
         assertEquals(ModalitaPorta.UNO_SOLO, f.modalitaPorta)
-        assertEquals(1, f.portieri().count { it.giocatore.ruoloPrimario == Ruolo.POR })
-        assertTrue(f.pianoPorta.isNotEmpty(), "La squadra senza portiere deve avere una turnazione")
-
-        val squadreConTurni = f.pianoPorta.map { it.squadra }.toSet()
-        assertEquals(1, squadreConTurni.size, "Solo una squadra deve ruotare")
+        assertEquals(1, f.portieri().count { it.giocatore.propensione.etichetta == Ruolo.POR })
+        assertEquals(1, f.pianoPorta.map { it.squadra }.toSet().size, "Solo una squadra deve ruotare")
     }
 
     @Test
-    fun `senza nessun portiere di ruolo ruotano entrambe le squadre`() {
-        val rosa = rosaEsatta()
-            .filterNot { it.ruoloPrimario == Ruolo.POR } + listOf(
-            giocatore(90, Ruolo.CEN, 50.0), giocatore(91, Ruolo.DIF, 50.0),
-        )
+    fun `senza nessun portiere ruotano entrambe le squadre`() {
+        val rosa = rosaEsatta().filterNot { it.propensione.etichetta == Ruolo.POR } +
+            listOf(giocatore(90, Ruolo.CEN, 50.0), giocatore(91, Ruolo.DIF, 50.0))
         val f = SorteggioSquadre.sorteggia(rosa, 7, seed = 7)
 
         assertEquals(ModalitaPorta.A_TURNO, f.modalitaPorta)
-        assertEquals(
-            setOf(Squadra.A, Squadra.B), f.pianoPorta.map { it.squadra }.toSet(),
-            "Se non c'e nessun portiere devono ruotare tutte e due",
-        )
+        assertEquals(setOf(Squadra.A, Squadra.B), f.pianoPorta.map { it.squadra }.toSet())
     }
 
-    // ---------------------------------------------------------------------
+    @Test
+    fun `anche a sorteggio puro qualcuno finisce in porta, e a turni`() {
+        val rosa = (0 until 14).map { giocatore(it) }
+        val f = SorteggioSquadre.sorteggia(rosa, 7, seed = 9)
+
+        assertEquals(ModalitaPorta.A_TURNO, f.modalitaPorta)
+        assertEquals(setOf(Squadra.A, Squadra.B), f.pianoPorta.map { it.squadra }.toSet())
+        assertTrue(f.portieri().all { it.ruolo == Ruolo.POR })
+    }
+
+    // =====================================================================
     // La turnazione
-    // ---------------------------------------------------------------------
+    // =====================================================================
 
     @Test
     fun `la turnazione copre la partita senza buchi ne doppioni`() {
-        val rosa = rosaEsatta().filterNot { it.ruoloPrimario == Ruolo.POR } + listOf(
-            giocatore(90, Ruolo.CEN, 50.0), giocatore(91, Ruolo.DIF, 50.0),
-        )
+        val rosa = rosaEsatta().filterNot { it.propensione.etichetta == Ruolo.POR } +
+            listOf(giocatore(90, Ruolo.CEN, 50.0), giocatore(91, Ruolo.DIF, 50.0))
         val f = SorteggioSquadre.sorteggia(rosa, 7, durataMin = 60, seed = 3)
 
         for (lato in listOf(Squadra.A, Squadra.B)) {
@@ -138,37 +266,24 @@ class TeamDrawTest {
 
             assertEquals(0, turni.first().dalMinuto)
             assertEquals(60, turni.last().alMinuto)
-            assertEquals(60, turni.sumOf { it.minuti }, "I minuti devono sommare alla durata")
-            assertEquals(
-                turni.size, turni.map { it.giocatoreId }.toSet().size,
-                "Nessuno puo comparire due volte nella turnazione",
-            )
+            assertEquals(60, turni.sumOf { it.minuti })
+            assertEquals(turni.size, turni.map { it.giocatoreId }.toSet().size)
             for (i in 1 until turni.size) {
-                assertEquals(
-                    turni[i - 1].alMinuto, turni[i].dalMinuto,
-                    "Buco o sovrapposizione fra i turni",
-                )
+                assertEquals(turni[i - 1].alMinuto, turni[i].dalMinuto, "Buco fra i turni")
             }
-            assertEquals(
-                rosaSquadra.first().giocatore.id, turni.first().giocatoreId,
-                "Il primo turno spetta a chi e schierato in porta",
-            )
-            assertTrue(
-                turni.all { t -> rosaSquadra.any { it.giocatore.id == t.giocatoreId } },
-                "In turnazione c'e qualcuno che non gioca in quella squadra",
-            )
+            assertEquals(rosaSquadra.first().giocatore.id, turni.first().giocatoreId)
+            assertTrue(turni.all { t -> rosaSquadra.any { it.giocatore.id == t.giocatoreId } })
         }
     }
 
     @Test
-    fun `con due portieri di ruolo non si perde tempo a fare turnazioni`() {
-        val f = SorteggioSquadre.sorteggia(rosaEsatta(), 7, seed = 11)
-        assertTrue(f.pianoPorta.isEmpty())
+    fun `con due portieri non si perde tempo a fare turnazioni`() {
+        assertTrue(SorteggioSquadre.sorteggia(rosaEsatta(), 7, seed = 11).pianoPorta.isEmpty())
     }
 
     /**
-     * Il punto non e solo che qualcuno vada in porta, ma che non sia sempre lo
-     * stesso. Senza il conteggio dei turni passati, chi para un po' meglio
+     * Il punto non e che qualcuno vada in porta, ma che non sia sempre lo
+     * stesso: senza il conteggio dei turni passati, chi para un po' meglio
      * diventa il portiere fisso della comitiva.
      */
     @Test
@@ -181,9 +296,9 @@ class TeamDrawTest {
         val minuti = HashMap<String, Int>()
 
         repeat(40) {
-            val convocati = rosa.shuffled(rng).take(14)
             val f = SorteggioSquadre.sorteggia(
-                convocati, 7, turniInPorta = turni, durataMin = 60, seed = rng.nextLong(),
+                rosa.shuffled(rng).take(14), 7, turniInPorta = turni, durataMin = 60,
+                seed = rng.nextLong(),
             )
             for (t in f.pianoPorta) {
                 turni.merge(t.giocatoreId, 1, Int::plus)
@@ -193,65 +308,50 @@ class TeamDrawTest {
 
         assertEquals(rosa.size, minuti.size, "Nessuno deve restare fuori dalla rotazione")
         val rapporto = minuti.values.max().toDouble() / minuti.values.min()
-        assertTrue(
-            rapporto < 1.5,
-            "Squilibrio nella porta: chi ne fa di piu ne fa ${"%.2f".format(rapporto)} volte chi ne fa meno",
-        )
+        assertTrue(rapporto < 1.5, "Squilibrio in porta: ${"%.2f".format(rapporto)}x")
     }
 
-    // ---------------------------------------------------------------------
-    // Ruoli
-    // ---------------------------------------------------------------------
+    // =====================================================================
+    // Ruoli in formazione
+    // =====================================================================
 
-    /**
-     * Con i parametri di default i ruoli sono fluidi, come nel calcetto vero:
-     * scambiarsi di posizione non e un problema, quindi un po' di fuori ruolo e
-     * atteso e va bene. Cio che NON deve succedere e che sia sistematico.
-     */
     @Test
-    fun `con ruoli fluidi il fuori ruolo resta contenuto`() {
-        var fuori = 0
+    fun `con ruoli fluidi lo spostamento resta contenuto`() {
+        var lontani = 0
         var totale = 0
         repeat(20) { i ->
             val f = SorteggioSquadre.sorteggia(rosaEsatta(), 7, seed = i.toLong())
-            fuori += f.tutti().count { it.fuoriRuolo }
+            lontani += f.tutti().count { it.lontanoDalSuoRuolo }
             totale += f.tutti().size
         }
-        val quota = fuori.toDouble() / totale
-        assertTrue(
-            quota < 0.30,
-            "Fuori ruolo nel ${"%.0f".format(quota * 100)}% dei casi pur avendo la dotazione esatta",
-        )
+        val quota = lontani.toDouble() / totale
+        assertTrue(quota < 0.30, "Spostati nel ${"%.0f".format(quota * 100)}% dei casi")
     }
 
     /**
-     * Un gruppo che tiene le posizioni puo chiedere ruoli rigidi. Con la
-     * dotazione di ruoli esatta, li nessuno deve giocare fuori ruolo: se
+     * Con ruoli rigidi e dotazione esatta nessuno deve giocare fuori ruolo: se
      * succede, l'ottimizzatore sta di nuovo usando lo spostamento come leva per
-     * pareggiare le squadre, che e il difetto originale.
+     * pareggiare, che e il difetto originale.
      */
     @Test
-    fun `con ruoli rigidi e dotazione esatta nessuno gioca fuori ruolo`() {
+    fun `con ruoli rigidi e dotazione esatta nessuno viene spostato`() {
         repeat(20) { i ->
             val f = SorteggioSquadre.sorteggia(
                 rosaEsatta(), 7, parametriRuolo = ParametriRuolo.RIGIDI, seed = i.toLong(),
             )
-            val fuori = f.tutti().filter { it.fuoriRuolo }
+            val fuori = f.tutti().filter { it.lontanoDalSuoRuolo }
             assertTrue(
                 fuori.isEmpty(),
-                "Seme $i: ${fuori.map { "${it.giocatore.nome}->${it.ruolo}" }} fuori ruolo senza motivo",
+                "Seme $i: ${fuori.map { "${it.giocatore.nome}->${it.ruolo}" }} spostati senza motivo",
             )
         }
     }
 
     @Test
-    fun `a ruoli liberi il valore non dipende dalla posizione`() {
+    fun `a ruoli liberi la posizione non cambia il valore`() {
         val g = giocatore(0, Ruolo.DIF, 60.0)
-        assertEquals(
-            g.ovr(Ruolo.DIF, ParametriRuolo.LIBERI) / Giocatore.PESI.getValue(Ruolo.DIF).let { 1.0 },
-            g.ovr(Ruolo.DIF, ParametriRuolo.LIBERI),
-        )
-        assertEquals(1.0, g.proficiency(Ruolo.ATT, ParametriRuolo.LIBERI))
+        assertEquals(1.0, g.propensione.affinita(Ruolo.ATT, ParametriRuolo.LIBERI))
+        assertEquals(g.ovrBase(Ruolo.ATT), g.ovr(Ruolo.ATT, ParametriRuolo.LIBERI))
     }
 
     @Test
@@ -267,18 +367,26 @@ class TeamDrawTest {
             for (squadra in listOf(f.squadraA, f.squadraB)) {
                 assertEquals(formato, squadra.size)
                 for ((ruolo, quanti) in attesa) {
-                    assertEquals(
-                        quanti, squadra.count { it.ruolo == ruolo },
-                        "Nel ${formato}v$formato servono $quanti $ruolo per squadra",
-                    )
+                    assertEquals(quanti, squadra.count { it.ruolo == ruolo }, "$formato: servono $quanti $ruolo")
                 }
             }
         }
     }
 
-    // ---------------------------------------------------------------------
+    /** Sei attaccanti non sono un problema: i posti si riempiono comunque. */
+    @Test
+    fun `una rosa tutta sbilanciata su un ruolo non rompe niente`() {
+        val rosa = (0 until 14).map { giocatore(it, Ruolo.ATT, 45.0 + it) }
+        val f = SorteggioSquadre.sorteggia(rosa, 7, seed = 4)
+
+        assertEquals(7, f.squadraA.size)
+        assertEquals(7, f.squadraB.size)
+        assertEquals(setOf(Squadra.A, Squadra.B), f.pianoPorta.map { it.squadra }.toSet())
+    }
+
+    // =====================================================================
     // Equilibrio e varieta: i due requisiti in conflitto
-    // ---------------------------------------------------------------------
+    // =====================================================================
 
     @Test
     fun `le squadre sono equilibrate`() {
@@ -287,17 +395,10 @@ class TeamDrawTest {
             val f = SorteggioSquadre.sorteggia(rosaEsatta(rng), 7, seed = rng.nextLong())
             f.deltaOvr / ((f.forzaA + f.forzaB) / 2)
         }
-        val medio = scarti.average()
-        assertTrue(medio < 0.02, "Scarto medio ${"%.2f".format(medio * 100)}%, atteso sotto il 2%")
+        assertTrue(scarti.average() < 0.02, "Scarto medio ${"%.2f".format(scarti.average() * 100)}%")
         assertTrue(scarti.max() < 0.06, "Un sorteggio ha sbilanciato oltre il 6%")
     }
 
-    /**
-     * Come funziona nell'uso reale: lo storico delle coppie si accumula partita
-     * dopo partita, e la penalita anti-ripetizione spinge il sorteggio a
-     * cambiare. Senza storico il sorteggio ha molte meno ragioni per variare —
-     * vedi il test successivo, che misura quel caso invece di nasconderlo.
-     */
     @Test
     fun `con lo storico che si accumula le squadre cambiano ogni volta`() {
         val rosa = rosaEsatta()
@@ -315,17 +416,12 @@ class TeamDrawTest {
             f.squadraA.map { it.giocatore.id }.toSet()
         }.toSet()
 
-        assertTrue(
-            partizioni.size >= 22,
-            "Solo ${partizioni.size} formazioni diverse su 25 nonostante lo storico",
-        )
+        assertTrue(partizioni.size >= 22, "Solo ${partizioni.size} formazioni diverse su 25")
     }
 
     /**
-     * Caso di partenza a freddo: primo sorteggio di un gruppo nuovo, storico
-     * vuoto. Qui la varieta e strutturalmente piu bassa e va detto, non
-     * mascherato: con una rosa fissa ci si assesta attorno a un terzo di
-     * formazioni distinte, e sono i sorteggi successivi a sparpagliare.
+     * Partenza a freddo: primo sorteggio, storico vuoto. Qui la varieta e
+     * strutturalmente piu bassa, e va misurata invece che mascherata.
      */
     @Test
     fun `senza storico le squadre variano meno ma non sono identiche`() {
@@ -334,7 +430,6 @@ class TeamDrawTest {
             SorteggioSquadre.sorteggia(rosa, 7, seed = i.toLong())
                 .squadraA.map { it.giocatore.id }.toSet()
         }.toSet()
-
         assertTrue(partizioni.size >= 5, "Solo ${partizioni.size} formazioni diverse su 25 a freddo")
     }
 
@@ -352,26 +447,49 @@ class TeamDrawTest {
     @Test
     fun `chi gioca sempre insieme viene separato`() {
         val rosa = rosaEsatta()
-        // p2 e p3 hanno gia giocato insieme moltissime volte
         val storico = mapOf(("p2" to "p3") to 50)
-
         val insieme = (0 until 20).count { i ->
-            val f = SorteggioSquadre.sorteggia(rosa, 7, storico, seed = i.toLong())
-            val idsA = f.squadraA.map { it.giocatore.id }.toSet()
+            val idsA = SorteggioSquadre.sorteggia(rosa, 7, storico, seed = i.toLong())
+                .squadraA.map { it.giocatore.id }.toSet()
             ("p2" in idsA) == ("p3" in idsA)
         }
-        assertTrue(insieme < 6, "p2 e p3 sono finiti insieme $insieme volte su 20 nonostante la penalita")
+        assertTrue(insieme < 6, "p2 e p3 insieme $insieme volte su 20 nonostante la penalita")
     }
 
-    // ---------------------------------------------------------------------
+    // =====================================================================
+    // L'organizzatore rimaneggia
+    // =====================================================================
+
+    @Test
+    fun `lo scarto si ricalcola su una formazione rimaneggiata a mano`() {
+        val f = SorteggioSquadre.sorteggia(rosaEsatta(), 7, seed = 8)
+        assertEquals(f.deltaOvr, SorteggioSquadre.scarto(f.squadraA, f.squadraB), 1e-9)
+
+        // l'organizzatore scambia due giocatori di movimento fra le squadre
+        val a = f.squadraA.toMutableList()
+        val b = f.squadraB.toMutableList()
+        val tmp = a[3]
+        a[3] = b[3]
+        b[3] = tmp
+
+        val nuovo = SorteggioSquadre.scarto(a, b)
+        assertTrue(nuovo >= 0.0)
+        assertTrue(
+            abs(nuovo - f.deltaOvr) > 1e-9 || quasiUgualiForze(a, b),
+            "Lo scarto deve seguire le modifiche dell'organizzatore",
+        )
+    }
+
+    private fun quasiUgualiForze(a: List<Slot>, b: List<Slot>) =
+        abs(a.sumOf { it.ovr } - b.sumOf { it.ovr }) < 1e-9
+
+    // =====================================================================
     // Ingressi sbagliati
-    // ---------------------------------------------------------------------
+    // =====================================================================
 
     @Test
     fun `rifiuta un numero di convocati che non torna`() {
-        assertFailsWith<IllegalArgumentException> {
-            SorteggioSquadre.sorteggia(rosaEsatta().take(13), 7)
-        }
+        assertFailsWith<IllegalArgumentException> { SorteggioSquadre.sorteggia(rosaEsatta().take(13), 7) }
     }
 
     @Test
@@ -384,45 +502,224 @@ class TeamDrawTest {
 
     @Test
     fun `rifiuta un formato non previsto`() {
-        assertFailsWith<IllegalArgumentException> {
-            SorteggioSquadre.sorteggia(rosaEsatta().take(10), 5)
-        }
+        assertFailsWith<IllegalArgumentException> { SorteggioSquadre.sorteggia(rosaEsatta().take(10), 5) }
     }
 
-    // ---------------------------------------------------------------------
+    @Test
+    fun `rifiuta un rendimento fuori scala`() {
+        assertFailsWith<IllegalArgumentException> { Propensione.NUOVA.dopoLaPartita(Ruolo.CEN, 1.5) }
+    }
+
+    // =====================================================================
     // Il sistema di valutazione
-    // ---------------------------------------------------------------------
+    // =====================================================================
 
     @Test
     fun `i pesi di ogni ruolo sommano a uno`() {
         for ((ruolo, p) in Giocatore.PESI) {
             val somma = p.velocita + p.tiro + p.passaggio + p.tecnica + p.difesa + p.fisico + p.parate
-            assertTrue(
-                kotlin.math.abs(somma - 1.0) < 1e-9,
-                "I pesi di $ruolo sommano a $somma invece che a 1.0: l'OVR uscirebbe da scala",
-            )
+            assertTrue(abs(somma - 1.0) < 1e-9, "I pesi di $ruolo sommano a $somma: l'OVR esce da scala")
         }
     }
 
     @Test
-    fun `il ruolo conta, ma poco`() {
-        val g = giocatore(0, Ruolo.DIF, 60.0, secondari = setOf(Ruolo.CEN))
-        assertEquals(1.00, g.proficiency(Ruolo.DIF))
-        assertEquals(0.97, g.proficiency(Ruolo.CEN), "Il secondario vale quasi quanto il principale")
-        assertEquals(0.90, g.proficiency(Ruolo.ATT), "Il fuori ruolo pesa poco: i ruoli si mescolano")
-
-        // il calo dev'essere sensibile ma non punitivo: nel calcetto un
-        // difensore che si ritrova in attacco non diventa un altro giocatore
-        val calo = 1 - g.proficiency(Ruolo.ATT)
-        assertTrue(calo <= 0.15, "Il fuori ruolo non deve essere una punizione")
+    fun `tutti partono uguali`() {
+        val a = Giocatore("a", "A")
+        val b = Giocatore("b", "B")
+        assertEquals(a.ovr(Ruolo.CEN), b.ovr(Ruolo.CEN))
+        assertEquals(50.0, a.ovr(Ruolo.CEN), "Con tutti gli attributi a 50 l'OVR deve essere 50")
     }
 
     @Test
-    fun `tutti partono uguali`() {
-        val base = Skill()
-        val a = Giocatore("a", "A", base, Ruolo.CEN)
-        val b = Giocatore("b", "B", base, Ruolo.CEN)
-        assertEquals(a.ovr(Ruolo.CEN), b.ovr(Ruolo.CEN))
-        assertEquals(50.0, a.ovr(Ruolo.CEN), "Con tutti gli attributi a 50 l'OVR deve essere 50")
+    fun `il ruolo conta, ma poco`() {
+        var p = Propensione.NUOVA
+        repeat(10) { p = p.dopoLaPartita(Ruolo.DIF, 0.9) }
+        val g = Giocatore("g", "G", Skill(), p)
+
+        assertNotNull(g.propensione.etichetta)
+        val calo = 1 - g.propensione.affinita(Ruolo.ATT)
+        assertTrue(calo in 0.01..0.15, "Il calo fuori ruolo e ${"%.2f".format(calo)}: non dev'essere una punizione")
+    }
+}
+
+/**
+ * Le fasi di gioco e il voto di fine partita. Si vota per fase e non per ruolo
+ * perche un difensore puo essere il miglior regista in campo, e chiedere "chi e
+ * stato il miglior centrocampista" quel dato lo perderebbe.
+ */
+class VotazioneTest {
+
+    private val convocati = (0 until 14).map { "p$it" }
+    private val inPorta = setOf("p0", "p7")
+
+    private fun tutti(fase: Fase, votato: String, tranne: Set<String> = emptySet()) =
+        convocati.filter { it != votato && it !in tranne }.map { Nomina(it, fase, votato) }
+
+    @Test
+    fun `ogni fase punta al ruolo che le corrisponde`() {
+        assertEquals(Ruolo.DIF, Fase.DIFESA.ruolo)
+        assertEquals(Ruolo.ATT, Fase.ATTACCO.ruolo)
+        assertEquals(Ruolo.CEN, Fase.REGIA.ruolo)
+        assertEquals(Ruolo.POR, Fase.PORTA.ruolo)
+        assertEquals(4, Fase.entries.map { it.ruolo }.toSet().size, "Le fasi devono coprire i quattro ruoli")
+    }
+
+    @Test
+    fun `non si vota se stessi`() {
+        assertTrue(!Votazione.validaNomina(Nomina("p1", Fase.DIFESA, "p1"), convocati.toSet(), inPorta))
+    }
+
+    @Test
+    fun `per la porta si nomina solo chi ci e stato`() {
+        assertTrue(Votazione.validaNomina(Nomina("p1", Fase.PORTA, "p0"), convocati.toSet(), inPorta))
+        assertTrue(!Votazione.validaNomina(Nomina("p1", Fase.PORTA, "p5"), convocati.toSet(), inPorta))
+    }
+
+    @Test
+    fun `lasciare in bianco e una risposta legittima`() {
+        assertTrue(Votazione.validaNomina(Nomina("p1", Fase.REGIA, null), convocati.toSet(), inPorta))
+    }
+
+    @Test
+    fun `chi prende tutte le nomine di una fase sfonda in quella fase`() {
+        val r = Votazione.rendimenti(tutti(Fase.DIFESA, "p3"), convocati, inPorta)
+        val p3 = r.first { it.giocatoreId == "p3" }
+        assertEquals(1.0, p3.perFase.getValue(Fase.DIFESA))
+        assertTrue(p3.perFase.getValue(Fase.ATTACCO) <= 0.0, "Una fase non deve contagiare le altre")
+    }
+
+    /** Non essere nominati non e giocare male: in ogni fase ne vince uno solo. */
+    @Test
+    fun `chi non prende nomine scende poco`() {
+        val r = Votazione.rendimenti(tutti(Fase.DIFESA, "p3"), convocati, inPorta)
+        val altro = r.first { it.giocatoreId == "p9" }
+        val voto = altro.perFase.getValue(Fase.DIFESA)
+        assertTrue(voto < 0.0, "Zero nomine deve pesare un po'")
+        assertTrue(voto > -0.5, "Zero nomine non deve essere una condanna: era $voto")
+    }
+
+    @Test
+    fun `senza nomine nessuno si muove`() {
+        val r = Votazione.rendimenti(emptyList(), convocati, inPorta)
+        assertTrue(r.all { it.perFase.values.all { v -> v == 0.0 } })
+    }
+
+    @Test
+    fun `chi non e stato in porta non viene giudicato sulle parate`() {
+        val r = Votazione.rendimenti(tutti(Fase.PORTA, "p0"), convocati, inPorta)
+        assertEquals(0.0, r.first { it.giocatoreId == "p5" }.perFase.getValue(Fase.PORTA))
+        assertTrue(r.first { it.giocatoreId == "p0" }.perFase.getValue(Fase.PORTA) > 0.5)
+    }
+
+    @Test
+    fun `le nomine non valide vengono scartate e non contano`() {
+        val sporche = listOf(
+            Nomina("p1", Fase.DIFESA, "p1"),        // vota se stesso
+            Nomina("p1", Fase.PORTA, "p5"),          // p5 non ha parato
+            Nomina("estraneo", Fase.DIFESA, "p3"),   // non era convocato
+        )
+        val r = Votazione.rendimenti(sporche, convocati, inPorta)
+        assertTrue(r.all { it.perFase.values.all { v -> v == 0.0 } })
+    }
+
+    // --------------------------------------------------------------
+    // Dal voto al profilo
+    // --------------------------------------------------------------
+
+    /**
+     * Il punto di votare le fasi: un difensore nominato per la regia diventa un
+     * centrocampista agli occhi dell'app, anche se ha sempre giocato dietro.
+     */
+    @Test
+    fun `le nomine per la regia spostano il profilo verso il centrocampo`() {
+        var g = Giocatore("p3", "Terzo", propensione = Propensione.diPartenza(Ruolo.DIF))
+        repeat(10) {
+            val r = Votazione.rendimenti(tutti(Fase.REGIA, "p3"), convocati, inPorta)
+            g = Crescita.applica(g, r.first { it.giocatoreId == "p3" })
+        }
+        assertEquals(Ruolo.CEN, g.propensione.etichetta, "Il profilo non ha seguito i voti")
+        assertEquals("Centrocampista", g.etichetta)
+    }
+
+    @Test
+    fun `ogni fase alza la caratteristica che le compete`() {
+        val base = Giocatore("p3", "Terzo")
+        val r = Votazione.rendimenti(tutti(Fase.DIFESA, "p3"), convocati, inPorta)
+            .first { it.giocatoreId == "p3" }
+        val dopo = Crescita.applica(base, r)
+
+        assertTrue(dopo.skill.difesa > base.skill.difesa, "La difesa deve salire")
+        assertTrue(dopo.skill.tiro <= base.skill.tiro, "Il tiro non c'entra con la fase difensiva")
+        assertTrue(dopo.skill.parate <= base.skill.parate, "Le parate non c'entrano")
+    }
+
+    @Test
+    fun `la crescita rallenta ai valori alti`() {
+        val forte = Giocatore("a", "A", Skill(difesa = 92.0))
+        val medio = Giocatore("b", "B", Skill(difesa = 50.0))
+        val r = { id: String ->
+            Votazione.rendimenti(tutti(Fase.DIFESA, "p3"), convocati, inPorta)
+                .first { it.giocatoreId == "p3" }.copy(giocatoreId = id)
+        }
+        val dForte = Crescita.applica(forte, r("a")).skill.difesa - 92.0
+        val dMedio = Crescita.applica(medio, r("b")).skill.difesa - 50.0
+
+        assertTrue(dForte in 0.0..dMedio, "Salire da 92 deve costare piu che da 50: $dForte vs $dMedio")
+    }
+
+    @Test
+    fun `nessuna caratteristica esce mai dalla scala`() {
+        var g = Giocatore("p3", "Terzo", Skill(difesa = 98.5))
+        repeat(50) {
+            val r = Votazione.rendimenti(tutti(Fase.DIFESA, "p3"), convocati, inPorta)
+            g = Crescita.applica(g, r.first { it.giocatoreId == "p3" })
+        }
+        assertTrue(g.skill.difesa <= 99.0, "Sforata la scala: ${g.skill.difesa}")
+        assertTrue(g.skill.difesa > 90.0)
+    }
+}
+
+/** Il profilo di partenza scelto all'iscrizione. */
+class ProfiloDiPartenzaTest {
+
+    @Test
+    fun `chi dichiara un profilo ha subito un'etichetta, marcata come tale`() {
+        val p = Propensione.diPartenza(Ruolo.ATT)
+        assertEquals(Ruolo.ATT, p.etichetta)
+        assertEquals("Attaccante · di partenza", p.etichettaTesto)
+        assertTrue(!p.confermataDaiFatti)
+    }
+
+    @Test
+    fun `un profilo di partenza orienta il primo sorteggio senza fissare nessuno`() {
+        val p = Propensione.diPartenza(Ruolo.ATT)
+        assertTrue(p.confidenza > 0.0, "Deve contare qualcosa, altrimenti e inutile dichiararlo")
+        assertTrue(p.confidenza < 0.5, "Non deve contare quanto le partite vere")
+        assertTrue(p.affinita(Ruolo.ATT) > p.affinita(Ruolo.DIF))
+    }
+
+    @Test
+    fun `dopo qualche partita l'etichetta smette di essere di partenza`() {
+        var p = Propensione.diPartenza(Ruolo.ATT)
+        repeat(Propensione.PARTITE_MINIME_PER_ETICHETTA) { p = p.dopoLaPartita(Ruolo.ATT, 0.8) }
+        assertTrue(p.confermataDaiFatti)
+        assertEquals("Attaccante", p.etichettaTesto)
+    }
+
+    /** I fatti battono le intenzioni: altrimenti si dichiarerebbero tutti attaccanti. */
+    @Test
+    fun `chi si dichiara attaccante ma difende viene riclassificato`() {
+        var p = Propensione.diPartenza(Ruolo.ATT)
+        repeat(10) { p = p.dopoLaPartita(Ruolo.DIF, 0.9) }
+        assertEquals(Ruolo.DIF, p.etichetta, "Il profilo dichiarato ha prevalso sui fatti")
+        assertEquals("Difensore", p.etichettaTesto)
+    }
+
+    @Test
+    fun `il profilo si disegna come quattro barrette normalizzate`() {
+        val profilo = Propensione.diPartenza(Ruolo.ATT).profilo()
+        assertEquals(4, profilo.size)
+        assertEquals(1.0, profilo.getValue(Ruolo.ATT))
+        assertTrue(profilo.values.all { it in 0.0..1.0 })
     }
 }

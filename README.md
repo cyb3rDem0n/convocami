@@ -9,7 +9,7 @@ Il nome è *call-up*, la convocazione.
 
 ## Stato
 
-**Fase 0 — impianto.** Il motore di sorteggio è scritto, testato e funzionante;
+**Fase 0 — impianto.** Il motore di sorteggio è scritto, coperto da 54 test e funzionante;
 lo schema del database è pronto da eseguire; l'app Android si compila e si
 installa, ma mostra ancora una schermata segnaposto.
 
@@ -47,7 +47,7 @@ nuova implementazione, non riscrivere l'app.
 ## Partire
 
 ```bash
-./gradlew :core:teamdraw:test   # 22 test del motore di sorteggio
+./gradlew :core:teamdraw:test   # 54 test del motore
 ./gradlew assembleDebug         # APK installabile
 ```
 
@@ -74,24 +74,62 @@ forza complessivo, squilibrio per reparto, differenza fra i due più forti,
 coppie che finiscono sempre insieme, e una penalità leggera per chi gioca fuori
 ruolo.
 
-### Due cose che il calcetto impone
+### Nessuno ha un ruolo fisso
 
-**I ruoli di movimento sono fluidi.** Un difensore si ritrova in area avversaria
-e un attaccante rientra a coprire, dentro la stessa partita. Il ruolo è quindi
-una preferenza leggera e giocare altrove costa poco (`ParametriRuolo`, che ogni
-gruppo può tarare: da `LIBERI` a `RIGIDI`).
+Il ruolo non si dichiara all'iscrizione — se si dichiarasse, si dichiarerebbero
+tutti attaccanti — ma si deduce da come è andata in campo. Ogni giocatore ha una
+**propensione**: quattro valori che dicono dove tende a rendere meglio, più una
+**confidenza** che cresce con le partite. Chi è nuovo ha confidenza zero e il
+ruolo non lo influenza affatto, così l'app non finge di sapere dove metterlo.
 
-**Il portiere invece è un vincolo.** Se fra i convocati c'è un portiere di
-ruolo, gioca in porta, e nessuna ottimizzazione successiva può spostarlo. La
-versione che lo trattava come un costo da bilanciare schierava i portieri veri
-in campo, perché due portieri improvvisati sono più *simili fra loro* di due
-bravi, e così il conto tornava prima.
+Chi vuole può indicare un **profilo di partenza** all'iscrizione. Serve a non
+sorteggiare del tutto alla cieca la prima domenica, compare come *"Attaccante ·
+di partenza"*, e i fatti lo scavalcano in poche partite.
 
-Quando i portieri mancano — che è la norma, non l'eccezione: su 40 partite
-simulate solo 24 ne avevano due — l'app divide i minuti fra tre giocatori e
-sceglie dando la precedenza a chi in porta ci è finito meno volte. Senza questo
-criterio, chi ha qualche riflesso in più diventa il portiere fisso della
-comitiva.
+L'etichetta compare solo con abbastanza partite e un distacco netto. Altrimenti
+resta **Jolly**, che non è l'assenza di un dato ma un'etichetta positiva, e nel
+calcetto è anche la più frequente.
+
+### Il portiere invece è un vincolo
+
+I ruoli di movimento si mescolano, la porta no. Se fra i convocati c'è chi para
+di mestiere, gioca in porta, e nessuna ottimizzazione può spostarlo. La versione
+che lo trattava come un costo schierava i portieri veri in campo, perché due
+improvvisati sono più *simili fra loro* di due bravi, e così il conto tornava
+prima.
+
+Quando i portieri mancano — che è la norma: su 40 partite simulate solo 24 ne
+avevano due — l'app divide i minuti fra tre giocatori e dà la precedenza a chi
+in porta ci è finito meno volte.
+
+### Quando non si sa, lo si dice
+
+Il sorteggio dichiara sempre con quanta informazione ha lavorato: *squadre fatte
+con ruoli e rendimenti*, *ruoli ancora incerti*, oppure *troppi giocatori nuovi
+per sapere come dividervi: sorteggio puro*. Quest'ultimo è casuale e non
+alfabetico di proposito — l'alfabetico darebbe sempre le stesse due squadre agli
+stessi quattordici, fingendo per giunta di essere un criterio.
+
+### Il voto di fine partita
+
+Si vota per **fase di gioco**, non per ruolo: difesa, attacco, regia, porta. Un
+difensore può essere il miglior regista in campo, e votando il ruolo quel dato
+andrebbe perso. Ed è una **nomina**, non un punteggio — quattro nomi, quattro
+tocchi — perché un voto da 1 a 10 per tredici persone su quattro fasi sono
+cinquantadue caselle che nessuno compila dopo la partita.
+
+Ogni fase alimenta ciò che le compete: difesa → *difesa*, attacco → *tiro*,
+regia → *passaggio* e *tecnica*, porta → *parate*. È questo che tiene in piedi
+le sette voci: un voto generico "ha giocato bene" le muoverebbe tutte insieme
+fino a renderle decorative.
+
+### Le squadre sono una proposta
+
+L'organizzatore le rimaneggia prima di chiudere la partita, e vede lo scarto di
+forza aggiornarsi mentre sposta. I ruoli mostrati descrivono come si parte, non
+come si deve giocare. Formazione sorteggiata e formazione finale si conservano
+separate, altrimenti l'evoluzione attribuirebbe i rendimenti alla casella
+sbagliata.
 
 ### Verificato, non solo scritto
 
@@ -99,10 +137,14 @@ I numeri qui sotto escono dal motore compilato, non da una stima.
 
 | | 7v7 | 8v8 |
 |---|---|---|
-| Scarto di forza fra le squadre | 0,50% | 0,26% |
+| Scarto di forza fra le squadre | 0,28% | 0,35% |
 | Formazioni distinte su 40 partite | 40/40 | 40/40 |
 | Violazioni del vincolo portiere | 0/40 | 0/40 |
-| Tempo per sorteggio | ~61 ms | ~70 ms |
+| Tempo per sorteggio | ~87 ms | ~90 ms |
+
+Partendo da **zero dati**, con i soli voti dei compagni, dopo 10 partite 15
+giocatori su 20 hanno un'etichetta e sono tutte corrette; dopo una stagione, 17
+su 18 etichettati correttamente.
 
 Nello scenario peggiore della porta — rosa di 16 senza nemmeno un portiere di
 ruolo, 40 partite — tutti e 16 hanno fatto fra 280 e 320 minuti fra i pali.

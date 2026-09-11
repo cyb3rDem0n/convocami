@@ -23,6 +23,8 @@ create type member_role   as enum ('admin', 'giocatore');
 create type team_side     as enum ('A', 'B');
 create type event_type    as enum ('gol', 'assist', 'autogol', 'mvp');
 create type modalita_porta as enum ('regolare', 'uno_solo', 'a_turno');
+create type livello_info   as enum ('etichette', 'rendimenti', 'sorteggio_puro');
+create type fase_gioco     as enum ('difesa', 'attacco', 'regia', 'porta');
 create type outbox_channel as enum ('push', 'email');
 create type outbox_status  as enum ('in_coda', 'inviata', 'errore');
 
@@ -108,20 +110,32 @@ create table player_ratings (
   primary key (group_id, profile_id)
 );
 
--- Ruoli: uno primario, N secondari. La proficiency modula l'OVR in quel ruolo.
-create table player_positions (
-  group_id    uuid not null references groups(id) on delete cascade,
-  profile_id  uuid not null references profiles(id) on delete cascade,
-  posizione   position_code not null,
-  primario    boolean not null default false,
-  proficiency numeric(4,3) not null default 0.92 check (proficiency between 0.50 and 1.00),
-  primary key (group_id, profile_id, posizione)
-);
+-- Nessuno ha un ruolo fisso.
+--
+-- Nel calcetto una persona fa l'attaccante una domenica e il difensore quella
+-- dopo. Il ruolo quindi non e un dato anagrafico dichiarato all'iscrizione --
+-- se lo fosse, si dichiarerebbero tutti attaccanti -- ma una PROPENSIONE
+-- dedotta da come e andata in campo, piu una confidenza che cresce con le
+-- partite valutate. A confidenza zero il sorteggio non usa affatto il ruolo.
+--
+-- profilo_iniziale e cio che la persona ha detto iscrivendosi ("parto
+-- attaccante"): serve a non sorteggiare del tutto alla cieca la prima
+-- domenica, viene mostrato come "di partenza", e i fatti lo scavalcano.
+create table player_roles (
+  group_id         uuid not null references groups(id) on delete cascade,
+  profile_id       uuid not null references profiles(id) on delete cascade,
 
--- Un solo ruolo primario per giocatore per gruppo
-create unique index one_primary_position
-  on player_positions (group_id, profile_id)
-  where primario;
+  prop_por         numeric(4,3) not null default 1.000 check (prop_por between 0 and 3),
+  prop_dif         numeric(4,3) not null default 1.000 check (prop_dif between 0 and 3),
+  prop_cen         numeric(4,3) not null default 1.000 check (prop_cen between 0 and 3),
+  prop_att         numeric(4,3) not null default 1.000 check (prop_att between 0 and 3),
+
+  partite_valutate int not null default 0 check (partite_valutate >= 0),
+  profilo_iniziale position_code,
+
+  updated_at       timestamptz not null default now(),
+  primary key (group_id, profile_id)
+);
 
 -- ---------------------------------------------------------------------------
 -- Partite
@@ -173,6 +187,7 @@ create table match_draws (
   costo           numeric(8,3) not null,       -- valore della funzione di costo
   delta_ovr       numeric(6,2) not null,       -- scarto di forza tra le due squadre
   porta           modalita_porta not null,     -- come si e risolta la questione portiere
+  livello         livello_info not null,       -- quanta informazione c'era davvero
   valido          boolean not null default true,
   created_at      timestamptz not null default now()
 );
@@ -236,6 +251,81 @@ join match_draws d on d.id = a.draw_id and d.valido
 join matches m on m.id = d.match_id
 where m.inizio_at > now() - interval '6 months'
 group by 1, 2, 3;
+
+-- ---------------------------------------------------------------------------
+-- La formazione finale
+--
+-- Il sorteggio produce una PROPOSTA. Chi organizza la rimaneggia prima di
+-- chiudere la partita, perche sa cose che l'app non sa. Le due formazioni si
+-- conservano separate: se si tenesse solo quella sorteggiata, l'evoluzione
+-- attribuirebbe i rendimenti alla casella sbagliata, e uno spostato in difesa
+-- dall'admin risulterebbe un attaccante che non ha segnato.
+-- ---------------------------------------------------------------------------
+
+create table match_lineup (
+  match_id    uuid not null references matches(id) on delete cascade,
+  profile_id  uuid not null references profiles(id) on delete cascade,
+  squadra     team_side not null,
+  posizione   position_code not null,
+  -- vero se l'organizzatore ha cambiato qualcosa rispetto al sorteggio
+  ritoccato   boolean not null default false,
+  primary key (match_id, profile_id)
+);
+
+create index on match_lineup (match_id, squadra);
+
+-- ---------------------------------------------------------------------------
+-- Il voto di fine partita
+--
+-- Si vota per FASE DI GIOCO e non per ruolo: un difensore puo essere il miglior
+-- regista in campo, e chiedere "chi e stato il miglior centrocampista" quel
+-- dato lo perderebbe. Ed e una NOMINA, non un punteggio: dare un voto a tredici
+-- persone per quattro fasi sono cinquantadue caselle, che nessuno compila dopo
+-- la partita. Quattro nomi sono quattro tocchi.
+--
+-- votato_id a null significa "nessuno si e distinto", e dev'essere una risposta
+-- legittima: obbligare a scegliere produce nomi a caso.
+-- ---------------------------------------------------------------------------
+
+create table match_votes (
+  match_id   uuid not null references matches(id) on delete cascade,
+  votante_id uuid not null references profiles(id) on delete cascade,
+  fase       fase_gioco not null,
+  votato_id  uuid references profiles(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (match_id, votante_id, fase),
+  constraint non_si_vota_se_stessi check (votato_id is null or votato_id <> votante_id)
+);
+
+create index on match_votes (match_id, fase);
+
+-- Chi ha effettivamente passato minuti in porta: solo loro sono nominabili
+-- nella fase 'porta'.
+create view chi_ha_parato as
+select distinct d.match_id, k.profile_id
+from draw_keeper_shifts k
+join match_draws d on d.id = k.draw_id and d.valido
+union
+select l.match_id, l.profile_id
+from match_lineup l
+where l.posizione = 'POR';
+
+-- Nomine ricevute per fase: e l'ingresso dell'aggiornamento di skill e
+-- propensione dopo ogni partita.
+create view nomine_ricevute as
+select
+  m.group_id,
+  v.match_id,
+  v.votato_id as profile_id,
+  v.fase,
+  count(*) as nomine,
+  (select count(distinct v2.votante_id)
+   from match_votes v2
+   where v2.match_id = v.match_id and v2.fase = v.fase) as votanti
+from match_votes v
+join matches m on m.id = v.match_id
+where v.votato_id is not null
+group by 1, 2, 3, 4;
 
 -- ---------------------------------------------------------------------------
 -- Eventi partita e storico skill
@@ -408,12 +498,14 @@ alter table profiles            enable row level security;
 alter table groups              enable row level security;
 alter table group_members       enable row level security;
 alter table player_ratings      enable row level security;
-alter table player_positions    enable row level security;
+alter table player_roles        enable row level security;
 alter table matches             enable row level security;
 alter table match_signups       enable row level security;
 alter table match_draws         enable row level security;
 alter table draw_slots          enable row level security;
 alter table draw_keeper_shifts  enable row level security;
+alter table match_lineup        enable row level security;
+alter table match_votes         enable row level security;
 alter table match_events        enable row level security;
 alter table rating_history      enable row level security;
 alter table notifications_outbox enable row level security;
@@ -455,8 +547,8 @@ create policy "admin gestisce membri" on group_members for update using (e_admin
 create policy "leggi skill"     on player_ratings for select using (e_membro(group_id));
 create policy "admin tara skill" on player_ratings for all using (e_admin(group_id));
 
-create policy "leggi ruoli"     on player_positions for select using (e_membro(group_id));
-create policy "gestisci i miei ruoli" on player_positions for all
+create policy "leggi ruoli"     on player_roles for select using (e_membro(group_id));
+create policy "il profilo di partenza lo scelgo io" on player_roles for all
   using (profile_id = auth.uid() or e_admin(group_id));
 
 create policy "leggi partite"   on matches for select using (e_membro(group_id));
@@ -490,6 +582,22 @@ create policy "leggi turni porta" on draw_keeper_shifts for select
 create policy "admin scrive turni porta" on draw_keeper_shifts for all
   using (exists (select 1 from match_draws d join matches m on m.id = d.match_id
                  where d.id = draw_id and e_admin(m.group_id)));
+
+create policy "leggi formazione finale" on match_lineup for select
+  using (exists (select 1 from matches m where m.id = match_id and e_membro(m.group_id)));
+create policy "admin sistema le squadre" on match_lineup for all
+  using (exists (select 1 from matches m where m.id = match_id and e_admin(m.group_id)));
+
+create policy "leggi i voti" on match_votes for select
+  using (exists (select 1 from matches m where m.id = match_id and e_membro(m.group_id)));
+create policy "voto solo io per me" on match_votes for insert
+  with check (votante_id = auth.uid()
+              and exists (select 1 from match_signups s
+                          where s.match_id = match_votes.match_id
+                            and s.profile_id = auth.uid()
+                            and s.stato = 'convocato'));
+create policy "posso correggere il mio voto" on match_votes for update
+  using (votante_id = auth.uid());
 
 create policy "leggi eventi" on match_events for select
   using (exists (select 1 from matches m where m.id = match_id and e_membro(m.group_id)));

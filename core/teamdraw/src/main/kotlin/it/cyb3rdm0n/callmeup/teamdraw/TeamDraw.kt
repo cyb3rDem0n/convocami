@@ -10,13 +10,19 @@ import kotlin.random.Random
  * telefono di chi organizza, si testa con una JVM e domani si ricompila dentro
  * un server senza toccare una riga.
  *
- * Due cose sono deliberatamente asimmetriche, perche il calcetto e asimmetrico:
+ * Tre principi, tutti e tre presi dal campo e non dal codice:
  *
- *  - i ruoli di movimento sono FLUIDI. Nel calcetto un difensore si ritrova in
- *    area avversaria e un attaccante rientra a coprire, dentro la stessa
- *    partita. Il ruolo e quindi una preferenza leggera, non un vincolo, e
- *    giocare altrove costa pochissimo;
- *  - il portiere invece e un VINCOLO vero. Chi para, para.
+ *  1. NESSUNO HA UN RUOLO FISSO. Il ruolo non si dichiara: si deduce da dove si
+ *     e giocato e da come e andata (vedi [Propensione]). Chi e nuovo non ha
+ *     ruolo, e non e un problema da aggirare.
+ *  2. IL PORTIERE E UN VINCOLO. I ruoli di movimento si mescolano, la porta no.
+ *  3. QUANDO NON SI SA, LO SI DICE. Senza dati sufficienti il sorteggio non
+ *     finge: sorteggia a caso e lo dichiara ([LivelloInformazione]).
+ *
+ * Le squadre uscite di qui sono una proposta: l'organizzatore puo rimaneggiarle
+ * prima di chiudere la partita, ed e giusto cosi, perche sa cose che l'app non
+ * sa. I ruoli mostrati nella formazione sono indicativi di come si parte, non
+ * un vincolo su come si gioca.
  */
 
 // ---------------------------------------------------------------------------
@@ -42,62 +48,52 @@ data class Skill(
  * Quanto conta il ruolo, per questo gruppo.
  *
  * I valori di default descrivono un calcetto normale, dove ci si scambia di
- * posizione in continuazione. Un gruppo che gioca in modo piu ordinato puo
- * alzare [pesoFuoriRuolo]; uno che gioca a ruoli completamente liberi puo
- * portare [proficiencyFuoriRuolo] a 1.0 e [pesoFuoriRuolo] a 0.0, e il ruolo
- * diventa solo un'indicazione di dove partire.
+ * posizione in continuazione: giocare altrove costa poco e non e una punizione.
  */
 data class ParametriRuolo(
-    /** Moltiplicatore del valore in un ruolo secondario dichiarato. */
-    val proficiencySecondario: Double = 0.97,
-    /** Moltiplicatore del valore in un ruolo mai dichiarato. */
-    val proficiencyFuoriRuolo: Double = 0.90,
-    /** Quanto dispiace, nella funzione di costo, schierare uno fuori ruolo. */
+    /** Quanto vale, al minimo, un giocatore in un ruolo che non e il suo. */
+    val affinitaMinima: Double = 0.90,
+    /** Quanto dispiace, nella funzione di costo, schierare uno lontano dal suo ruolo. */
     val pesoFuoriRuolo: Double = 3.0,
-    /** Quanto dispiace schierare uno nel suo ruolo secondario. */
-    val pesoSecondario: Double = 0.5,
 ) {
     init {
-        require(proficiencyFuoriRuolo in 0.5..1.0) { "proficiencyFuoriRuolo fuori scala" }
-        require(proficiencySecondario in proficiencyFuoriRuolo..1.0) {
-            "Il ruolo secondario non puo valere meno del fuori ruolo"
-        }
+        require(affinitaMinima in 0.5..1.0) { "affinitaMinima fuori scala" }
+        require(pesoFuoriRuolo >= 0.0) { "pesoFuoriRuolo non puo essere negativo" }
     }
 
     companion object {
         /** Ruoli del tutto liberi: conta solo la forza dei giocatori. */
-        val LIBERI = ParametriRuolo(1.0, 1.0, 0.0, 0.0)
+        val LIBERI = ParametriRuolo(affinitaMinima = 1.0, pesoFuoriRuolo = 0.0)
 
         /** Gruppo ordinato, che tiene le posizioni. */
-        val RIGIDI = ParametriRuolo(0.92, 0.80, 20.0, 3.0)
+        val RIGIDI = ParametriRuolo(affinitaMinima = 0.80, pesoFuoriRuolo = 20.0)
     }
 }
 
 data class Giocatore(
     val id: String,
     val nome: String,
-    val skill: Skill,
-    val ruoloPrimario: Ruolo,
-    val ruoliSecondari: Set<Ruolo> = emptySet(),
+    val skill: Skill = Skill(),
+    val propensione: Propensione = Propensione.NUOVA,
 ) {
-    fun proficiency(ruolo: Ruolo, p: ParametriRuolo = ParametriRuolo()): Double = when {
-        ruolo == ruoloPrimario -> 1.0
-        ruolo in ruoliSecondari -> p.proficiencySecondario
-        else -> p.proficiencyFuoriRuolo
-    }
-
-    /** Quanto vale questo giocatore schierato in questo ruolo, scala 1..99. */
-    fun ovr(ruolo: Ruolo, p: ParametriRuolo = ParametriRuolo()): Double {
+    /** Quanto vale in questo ruolo prima di tener conto della propensione. */
+    fun ovrBase(ruolo: Ruolo): Double {
         val w = PESI.getValue(ruolo)
-        val base = w.velocita * skill.velocita +
+        return w.velocita * skill.velocita +
             w.tiro * skill.tiro +
             w.passaggio * skill.passaggio +
             w.tecnica * skill.tecnica +
             w.difesa * skill.difesa +
             w.fisico * skill.fisico +
             w.parate * skill.parate
-        return base * proficiency(ruolo, p)
     }
+
+    /** Quanto vale schierato in questo ruolo, scala 1..99. */
+    fun ovr(ruolo: Ruolo, p: ParametriRuolo = ParametriRuolo()): Double =
+        ovrBase(ruolo) * propensione.affinita(ruolo, p)
+
+    /** L'etichetta accanto al nome: "Difensore", "Jolly", "Nuovo". */
+    val etichetta: String get() = propensione.etichettaTesto
 
     companion object {
         /** Pesi per ruolo; ogni riga somma 1.0, cosi l'OVR resta sulla scala 1..99. */
@@ -119,21 +115,21 @@ val FORMAZIONI: Map<Int, Map<Ruolo, Int>> = mapOf(
 data class Slot(
     val giocatore: Giocatore,
     val ruolo: Ruolo,
-    /** Valore del giocatore in questo ruolo, gia calcolato con i parametri del gruppo. */
+    /** Valore del giocatore in questo ruolo, con i parametri del gruppo applicati. */
     val ovr: Double,
-    /** Vero se il ruolo non e ne il primario ne uno dei secondari dichiarati. */
-    val fuoriRuolo: Boolean,
+    /** Vero se il ruolo non e quello che il giocatore ricopre di solito. */
+    val lontanoDalSuoRuolo: Boolean,
 )
 
 /** Come si e risolta la questione portiere: serve a spiegarlo nella UI. */
 enum class ModalitaPorta {
-    /** Due portieri di ruolo fra i convocati: ciascuno nella sua porta. */
+    /** Due portieri riconosciuti fra i convocati: ciascuno nella sua porta. */
     REGOLARE,
 
-    /** Un solo portiere di ruolo: l'altra squadra si organizza a turni. */
+    /** Un solo portiere riconosciuto: l'altra squadra si organizza a turni. */
     UNO_SOLO,
 
-    /** Nessun portiere di ruolo: entrambe le squadre ruotano in porta. */
+    /** Nessun portiere: entrambe le squadre ruotano in porta. */
     A_TURNO,
 }
 
@@ -152,12 +148,13 @@ data class Formazione(
     val squadraA: List<Slot>,
     val squadraB: List<Slot>,
     val modalitaPorta: ModalitaPorta,
+    /** Quanta informazione aveva il sorteggio: da mostrare, non da nascondere. */
+    val livello: LivelloInformazione,
     /**
-     * Turnazione fra i pali. Vuota quando ci sono due portieri di ruolo.
-     * Quando non ce ne sono, o ce n'e uno solo, nessuno deve farsi tutta la
-     * partita in porta per caso: la squadra senza portiere ruota fra tre
-     * giocatori, scelti dando la precedenza a chi in porta ci e finito meno
-     * volte nelle partite passate.
+     * Turnazione fra i pali, vuota quando ci sono due portieri riconosciuti.
+     * Quando mancano, nessuno deve farsi tutta la partita in porta per caso: la
+     * squadra scoperta ruota fra tre giocatori, dando la precedenza a chi in
+     * porta ci e finito meno volte.
      */
     val pianoPorta: List<TurnoPorta>,
     val seed: Long,
@@ -168,12 +165,16 @@ data class Formazione(
     val forzaA: Double get() = squadraA.sumOf { it.ovr }
     val forzaB: Double get() = squadraB.sumOf { it.ovr }
 
-    /** Frase pronta per la UI e per la notifica. */
-    fun spiegazionePorta(): String = when (modalitaPorta) {
-        ModalitaPorta.REGOLARE -> "Portieri di ruolo in entrambe le porte."
-        ModalitaPorta.UNO_SOLO -> "Un solo portiere di ruolo: l'altra squadra si alterna fra i pali."
-        ModalitaPorta.A_TURNO -> "Nessun portiere di ruolo fra i convocati: si va a turni in porta."
-    }
+    /** Le due frasi da mostrare sopra il campo. */
+    fun spiegazione(): List<String> = listOfNotNull(
+        livello.testo,
+        when (modalitaPorta) {
+            ModalitaPorta.REGOLARE -> null
+            ModalitaPorta.UNO_SOLO -> "Un solo portiere: l'altra squadra si alterna fra i pali."
+            ModalitaPorta.A_TURNO -> "Nessun portiere fra i convocati: si va a turni in porta."
+        },
+        "I ruoli sono indicativi: in campo mescolatevi pure.",
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -187,16 +188,12 @@ private const val W_RIPETUTI = 0.35 // coppie che giocano sempre insieme
 
 /**
  * Quante volte due giocatori sono gia finiti nella stessa squadra di recente.
- * Chiave: coppia di id ordinata. Alimenta la penalita anti-ripetizione, ed e
- * cio che rende le squadre diverse a ogni partita: senza storico il sorteggio
+ * E cio che rende le squadre diverse a ogni partita: senza storico il sorteggio
  * ha molte meno ragioni per cambiare.
  */
 typealias StoricoCoppie = Map<Pair<String, String>, Int>
 
-/**
- * Quante volte ciascuno e gia finito in porta senza esserne il ruolo.
- * Serve a non far pagare sempre allo stesso il fatto che nessuno vuole andarci.
- */
+/** Quante volte ciascuno e gia finito in porta senza essere un portiere. */
 typealias TurniInPorta = Map<String, Int>
 
 private fun chiave(a: String, b: String) = if (a < b) a to b else b to a
@@ -207,12 +204,17 @@ private fun chiave(a: String, b: String) = if (a < b) a to b else b to a
 
 private class Schieramento(val a: MutableList<Slot>, val b: MutableList<Slot>)
 
+/** Quanto dispiace vedere questo giocatore in questo ruolo, da 0 in su. */
+private fun disagio(g: Giocatore, r: Ruolo, p: ParametriRuolo): Double {
+    if (p.affinitaMinima >= 1.0 || p.pesoFuoriRuolo == 0.0) return 0.0
+    val scostamento = (1.0 - g.propensione.affinita(r, p)) / (1.0 - p.affinitaMinima)
+    return p.pesoFuoriRuolo * scostamento
+}
+
 private fun costo(
     s: Schieramento, storico: StoricoCoppie, p: ParametriRuolo,
 ): Pair<Double, Double> {
-    val totA = s.a.sumOf { it.ovr }
-    val totB = s.b.sumOf { it.ovr }
-    val deltaTot = abs(totA - totB)
+    val deltaTot = abs(s.a.sumOf { it.ovr } - s.b.sumOf { it.ovr })
 
     // Il portiere pesa nel totale — una porta piu forte si compensa in campo —
     // ma non entra nel confronto per reparto ne fra i migliori.
@@ -230,15 +232,7 @@ private fun costo(
     val topA = movA.map { it.ovr }.sortedDescending().take(2).sum()
     val topB = movB.map { it.ovr }.sortedDescending().take(2).sum()
 
-    var disagio = 0.0
-    for (slot in movA + movB) {
-        val prof = slot.giocatore.proficiency(slot.ruolo, p)
-        disagio += when {
-            prof == 1.0 -> 0.0
-            slot.fuoriRuolo -> p.pesoFuoriRuolo
-            else -> p.pesoSecondario
-        }
-    }
+    val scomodi = (movA + movB).sumOf { disagio(it.giocatore, it.ruolo, p) }
 
     var ripetizioni = 0
     for (squadra in listOf(s.a, s.b)) {
@@ -253,7 +247,7 @@ private fun costo(
         W_REPARTO * deltaReparti +
         W_TOP * abs(topA - topB) +
         W_RIPETUTI * ripetizioni +
-        disagio
+        scomodi
     return c to deltaTot
 }
 
@@ -266,29 +260,30 @@ private data class SceltaPorta(
 )
 
 /**
- * Se fra i convocati ci sono portieri di ruolo, vanno in porta. Non e
- * negoziabile: lasciarlo decidere alla funzione di costo porta l'ottimizzatore
- * a schierare due scarsi fra i pali, perche due scarsi sono piu simili fra loro
+ * Se fra i convocati c'e chi para di mestiere, va in porta. Non e negoziabile:
+ * lasciarlo decidere alla funzione di costo porta l'ottimizzatore a schierare
+ * due improvvisati fra i pali, perche due improvvisati sono piu simili fra loro
  * di due bravi e cosi il conto torna prima.
  *
  * Quando i portieri sono uno o zero — che nel calcetto e la norma piu che
  * l'eccezione — si improvvisa, ma con un criterio: prima chi in porta ci e
- * andato meno volte, e a parita di turni chi para meglio.
+ * andato meno volte, e solo a parita di turni chi para meglio.
  */
 private fun scegliPortieri(
     convocati: List<Giocatore>, rng: Random, turni: TurniInPorta, p: ParametriRuolo,
 ): SceltaPorta {
-    val diRuolo = convocati.filter { it.ruoloPrimario == Ruolo.POR }.shuffled(rng)
+    val portieri = convocati
+        .filter { it.propensione.etichetta == Ruolo.POR }
+        .shuffled(rng)
 
-    if (diRuolo.size >= 2) {
-        val due = diRuolo.sortedByDescending { it.ovr(Ruolo.POR, p) }
+    if (portieri.size >= 2) {
+        val due = portieri.sortedByDescending { it.ovr(Ruolo.POR, p) }
         return SceltaPorta(due[0], due[1], ModalitaPorta.REGOLARE)
     }
 
     val ripieghi = ordinaRipieghi(convocati, turni, rng, p)
-
-    return if (diRuolo.size == 1) {
-        SceltaPorta(diRuolo[0], ripieghi[0], ModalitaPorta.UNO_SOLO)
+    return if (portieri.size == 1) {
+        SceltaPorta(portieri[0], ripieghi.first { it.id != portieri[0].id }, ModalitaPorta.UNO_SOLO)
     } else {
         SceltaPorta(ripieghi[0], ripieghi[1], ModalitaPorta.A_TURNO)
     }
@@ -298,7 +293,7 @@ private fun scegliPortieri(
 private fun ordinaRipieghi(
     candidati: List<Giocatore>, turni: TurniInPorta, rng: Random, p: ParametriRuolo,
 ): List<Giocatore> = candidati
-    .filter { it.ruoloPrimario != Ruolo.POR }
+    .filter { it.propensione.etichetta != Ruolo.POR }
     .map { g ->
         // meno turni fatti = molto meglio; a parita, chi para di piu.
         // il rumore evita che con i contatori a zero esca sempre lo stesso.
@@ -306,11 +301,9 @@ private fun ordinaRipieghi(
     }
     .sortedByDescending { it.second }
     .map { it.first }
+    .ifEmpty { candidati }
 
-/**
- * Turnazione fra i pali per una squadra senza portiere di ruolo: spezzoni di
- * durata pari, il primo a chi e schierato in porta.
- */
+/** Turnazione fra i pali per una squadra senza portiere riconosciuto. */
 private fun pianoPerSquadra(
     squadra: Squadra,
     rosaSquadra: List<Slot>,
@@ -345,17 +338,14 @@ private fun slot(g: Giocatore, r: Ruolo, p: ParametriRuolo) = Slot(
     giocatore = g,
     ruolo = r,
     ovr = g.ovr(r, p),
-    fuoriRuolo = r != g.ruoloPrimario && r !in g.ruoliSecondari,
+    lontanoDalSuoRuolo = g.propensione.etichetta != null && g.propensione.etichetta != r,
 )
 
 private fun schieramentoIniziale(
     convocati: List<Giocatore>, formato: Int, rng: Random, porta: SceltaPorta, p: ParametriRuolo,
 ): Schieramento {
     val forma = FORMAZIONI.getValue(formato)
-    val liberi = mapOf(
-        Squadra.A to forma.toMutableMap(),
-        Squadra.B to forma.toMutableMap(),
-    )
+    val liberi = mapOf(Squadra.A to forma.toMutableMap(), Squadra.B to forma.toMutableMap())
     val s = Schieramento(
         mutableListOf(slot(porta.a, Ruolo.POR, p)),
         mutableListOf(slot(porta.b, Ruolo.POR, p)),
@@ -370,9 +360,7 @@ private fun schieramentoIniziale(
     for (g in rimasti) {
         val opzioni = buildList {
             for (sq in Squadra.entries) {
-                for ((r, n) in liberi.getValue(sq)) {
-                    if (n > 0 && r != Ruolo.POR) add(sq to r)
-                }
+                for ((r, n) in liberi.getValue(sq)) if (n > 0 && r != Ruolo.POR) add(sq to r)
             }
         }
         if (opzioni.isEmpty()) break
@@ -382,7 +370,7 @@ private fun schieramentoIniziale(
             Squadra.B to s.b.sumOf { it.ovr },
         )
         val (sq, r) = opzioni.maxBy { (squadra, ruolo) ->
-            g.proficiency(ruolo, p) * 100 - carico.getValue(squadra) * 0.02 + rng.nextDouble() * 8
+            g.propensione.affinita(ruolo, p) * 100 - carico.getValue(squadra) * 0.02 + rng.nextDouble() * 8
         }
         (if (sq == Squadra.A) s.a else s.b).add(slot(g, r, p))
         liberi.getValue(sq)[r] = liberi.getValue(sq).getValue(r) - 1
@@ -428,6 +416,39 @@ private fun migliora(
     return corrente
 }
 
+/**
+ * Sorteggio puro: si distribuiscono i convocati a caso e si riempiono i posti.
+ *
+ * Non e un ripiego pigro, e la risposta corretta quando non si sa niente di
+ * nessuno. Ed e casuale e non alfabetico di proposito: l'ordine alfabetico
+ * darebbe sempre le stesse due squadre agli stessi quattordici, settimana dopo
+ * settimana, e farebbe finta di essere un criterio pur non essendolo.
+ */
+private fun sorteggioPuro(
+    convocati: List<Giocatore>, formato: Int, rng: Random, porta: SceltaPorta, p: ParametriRuolo,
+): Schieramento {
+    val forma = FORMAZIONI.getValue(formato)
+    val s = Schieramento(
+        mutableListOf(slot(porta.a, Ruolo.POR, p)),
+        mutableListOf(slot(porta.b, Ruolo.POR, p)),
+    )
+    val posti = buildList {
+        for (sq in Squadra.entries) {
+            for ((r, n) in forma) if (r != Ruolo.POR) repeat(n) { add(sq to r) }
+        }
+    }.shuffled(rng)
+
+    val rimasti = convocati
+        .filter { it.id != porta.a.id && it.id != porta.b.id }
+        .shuffled(rng)
+
+    for ((g, posto) in rimasti.zip(posti)) {
+        val (sq, r) = posto
+        (if (sq == Squadra.A) s.a else s.b).add(slot(g, r, p))
+    }
+    return s
+}
+
 // ---------------------------------------------------------------------------
 // API pubblica
 // ---------------------------------------------------------------------------
@@ -437,14 +458,17 @@ object SorteggioSquadre {
     /**
      * Divide i convocati in due squadre eque.
      *
-     * La pseudo-casualita chiesta dal progetto nasce qui: non si sceglie mai la
-     * soluzione di costo minimo — darebbe sempre le stesse squadre con gli
-     * stessi convocati — ma si pesca a caso fra tutte quelle entro [tolleranza]
-     * dalla migliore. Passare [storico] e cio che spinge davvero la varieta:
-     * senza, con una rosa fissa, le formazioni tornano a somigliarsi.
+     * La pseudo-casualita nasce qui: non si sceglie mai la soluzione di costo
+     * minimo — darebbe sempre le stesse squadre con gli stessi convocati — ma
+     * si pesca a caso fra tutte quelle entro [tolleranza] dalla migliore.
+     * Passare [storico] e cio che spinge davvero la varieta: senza, con una rosa
+     * fissa, le formazioni tornano a somigliarsi.
      *
-     * @param seed conservarlo sul database permette di rigenerare lo stesso
-     *             sorteggio, per esempio per mostrare com'era prima di un forfait.
+     * Il risultato e una proposta. L'organizzatore la rimaneggia prima di
+     * chiudere la partita, e i ruoli che compaiono descrivono come si parte,
+     * non come si deve giocare.
+     *
+     * @param seed conservarlo permette di rigenerare lo stesso sorteggio.
      */
     fun sorteggia(
         convocati: List<Giocatore>,
@@ -467,6 +491,27 @@ object SorteggioSquadre {
 
         val p = parametriRuolo
         val rng = Random(seed)
+        val livello = livelloInformazione(convocati)
+        val ordine = listOf(Ruolo.POR, Ruolo.DIF, Ruolo.CEN, Ruolo.ATT)
+
+        // Senza informazioni non c'e niente da ottimizzare: pareggiare numeri
+        // tutti uguali produrrebbe solo l'illusione di un criterio.
+        if (livello == LivelloInformazione.SORTEGGIO_PURO) {
+            val porta = scegliPortieri(convocati, rng, turniInPorta, p)
+            val s = sorteggioPuro(convocati, formato, rng, porta, p)
+            val (c, delta) = costo(s, storico, p)
+            return Formazione(
+                squadraA = s.a.sortedBy { ordine.indexOf(it.ruolo) },
+                squadraB = s.b.sortedBy { ordine.indexOf(it.ruolo) },
+                modalitaPorta = porta.modalita,
+                livello = livello,
+                pianoPorta = pianoPorta(s, durataMin, turniInPorta, rng, p),
+                seed = seed,
+                costo = c,
+                deltaOvr = delta,
+            )
+        }
+
         val candidati = ArrayList<Pair<Double, Schieramento>>(restart)
         var modalita = ModalitaPorta.A_TURNO
 
@@ -483,25 +528,37 @@ object SorteggioSquadre {
         val (c, scelto) = buoni[rng.nextInt(buoni.size)]
         val (_, delta) = costo(scelto, storico, p)
 
-        // La turnazione si calcola sulle rose gia formate: ruota solo la
-        // squadra (o le squadre) senza portiere di ruolo.
-        val piano = buildList {
-            for ((lato, rosa) in listOf(Squadra.A to scelto.a, Squadra.B to scelto.b)) {
-                val portiere = rosa[0].giocatore
-                if (portiere.ruoloPrimario == Ruolo.POR) continue
-                addAll(pianoPerSquadra(lato, rosa, portiere, durataMin, turniInPorta, rng, p))
-            }
-        }
-
-        val ordine = listOf(Ruolo.POR, Ruolo.DIF, Ruolo.CEN, Ruolo.ATT)
         return Formazione(
             squadraA = scelto.a.sortedBy { ordine.indexOf(it.ruolo) },
             squadraB = scelto.b.sortedBy { ordine.indexOf(it.ruolo) },
             modalitaPorta = modalita,
-            pianoPorta = piano,
+            livello = livello,
+            pianoPorta = pianoPorta(scelto, durataMin, turniInPorta, rng, p),
             seed = seed,
             costo = c,
             deltaOvr = delta,
         )
     }
+
+    /** Ruota solo la squadra (o le squadre) senza portiere riconosciuto. */
+    private fun pianoPorta(
+        s: Schieramento, durataMin: Int, turni: TurniInPorta, rng: Random, p: ParametriRuolo,
+    ): List<TurnoPorta> = buildList {
+        for ((lato, rosa) in listOf(Squadra.A to s.a, Squadra.B to s.b)) {
+            val portiere = rosa[0].giocatore
+            if (portiere.propensione.etichetta == Ruolo.POR) continue
+            addAll(pianoPerSquadra(lato, rosa, portiere, durataMin, turni, rng, p))
+        }
+    }
+
+    /**
+     * Scarto di forza di una formazione qualsiasi, anche rimaneggiata a mano.
+     *
+     * Serve alla schermata dell'organizzatore: mentre sposta i giocatori, vede
+     * il numero cambiare. Un avviso dopo non avrebbe lo stesso effetto di
+     * vedere lo squilibrio crescere sotto le dita.
+     */
+    fun scarto(
+        squadraA: List<Slot>, squadraB: List<Slot>,
+    ): Double = abs(squadraA.sumOf { it.ovr } - squadraB.sumOf { it.ovr })
 }

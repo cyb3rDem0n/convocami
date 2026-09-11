@@ -151,54 +151,59 @@ mentre continui a svilupparla.
 
 ## Parte 2 — La web app online
 
-La web app è la fase 5: si scrive dopo che l'app Android funziona, e riusa lo
-stesso database Supabase senza duplicare nulla di backend.
+La web app non ha **nessun passaggio di build**: è HTML, CSS e un modulo
+JavaScript, con il client Supabase preso dalla CDN. Non c'è niente da
+installare e niente da compilare, quindi si pubblica copiando dei file e si
+corregge ricaricando la pagina.
 
-### Creare il progetto
+È una revisione consapevole del piano iniziale, che diceva Next.js. Per una
+manciata di schermate un progetto senza build si mette online in cinque minuti
+e non può rompersi in fase di compilazione; il giorno che diventasse stretto, le
+query Supabase si portano in Next.js senza toccarle.
+
+### Provarla in locale
 
 ```bash
-npx create-next-app@latest web --typescript --app --tailwind --eslint
 cd web
-npm install @supabase/supabase-js @supabase/ssr
+cp config.example.js config.js     # e riempilo con URL e chiave anon
+python3 -m http.server 8000
 ```
 
-Mettilo nella cartella `web/` di questo repo: un solo repo, due client.
+Poi apri `http://localhost:8000`. **Non aprire il file con doppio clic**: i
+moduli ES non funzionano da `file://`, serve un server, anche banale come
+quello qui sopra.
 
 ### Le chiavi
 
-In `web/.env.local` (già ignorato da git):
-
-```
-NEXT_PUBLIC_SUPABASE_URL=https://xxxxx.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
-```
-
-La chiave `anon` è pubblica per definizione e può stare nel browser: a proteggere
-i dati sono le policy di Row Level Security scritte in `db/migrations/001_schema.sql`,
-non la segretezza della chiave. La chiave `service_role` invece non deve mai
-finire nel client, per nessun motivo.
+`web/config.js` non è versionato. La chiave `anon` è pubblica per definizione e
+vive nel browser: a proteggere i dati sono le policy di Row Level Security, non
+la segretezza della chiave. La `service_role` invece non deve mai finire lì.
 
 ### Andare online su Vercel
 
-Gratuito per progetti personali, e si aggiorna da solo a ogni push.
+Gratuito, e si aggiorna da solo a ogni push.
 
 1. Vai su vercel.com e accedi con GitHub.
 2. *Add New → Project*, scegli il repo `CallMeUp`.
-3. Alla voce **Root Directory** indica `web` — è il passaggio che si dimentica
-   sempre, e senza il quale il build fallisce perché Vercel cerca il progetto
-   nella radice.
-4. In *Environment Variables* incolla le due righe di sopra.
-5. *Deploy*.
+3. **Root Directory**: `web` — è il passaggio che si dimentica sempre.
+4. **Framework Preset**: *Other*. Lascia vuoti i comandi di build: non ce ne sono.
+5. Deploy.
 
-Finito: ottieni un indirizzo `callmeup.vercel.app`, e da quel momento ogni push
-su `main` ripubblica da solo. Un dominio tuo, se lo vorrai, si aggiunge dalle
-impostazioni del progetto.
+Un dettaglio: `config.js` è in `.gitignore`, quindi Vercel non lo trova e la
+pagina resta bianca. Due modi per risolverlo, entrambi legittimi visto che la
+chiave anon è pubblica:
 
-### Una cosa da configurare in Supabase
+- togliere `web/config.js` dal `.gitignore` e committarlo (il più semplice);
+- oppure caricarlo a mano una volta con `vercel` da riga di comando.
+
+### Due cose da configurare in Supabase
 
 In *Authentication → URL Configuration* aggiungi l'indirizzo Vercel fra i
-**Redirect URLs**, altrimenti i link di conferma via email rimandano a
-localhost e l'accesso dal web non funziona.
+**Redirect URLs** e come **Site URL**, altrimenti il link che arriva via email
+rimanda a localhost e nessuno riesce a entrare.
+
+Sempre lì, controlla che *Enable email provider* sia attivo: l'accesso è senza
+password, tutto passa da quel link.
 
 ---
 
@@ -208,9 +213,13 @@ Da fare una volta sola, prima di tutto il resto.
 
 1. Su supabase.com crea un progetto (piano gratuito, niente carta).
 2. Apri *SQL Editor*, incolla `db/migrations/001_schema.sql`, esegui.
-3. In *Storage* crea un bucket `avatars`, pubblico in lettura.
-4. In *Settings → API* copia `URL` e `anon key`: vanno in `local.properties`
-   per Android e in `.env.local` per il web.
+3. Sempre lì, esegui anche `db/migrations/002_ingresso_e_realtime.sql`: contiene
+   le funzioni per entrare in un gruppo col codice — senza, chi non è ancora
+   membro non riesce nemmeno a trovare il gruppo — e attiva il realtime sulle
+   iscrizioni.
+4. In *Storage* crea un bucket `avatars`, pubblico in lettura.
+5. In *Settings → API* copia `URL` e `anon key`: vanno in `local.properties`
+   per Android e in `web/config.js` per il web.
 
 Poi in `local.properties`, accanto a `sdk.dir`:
 

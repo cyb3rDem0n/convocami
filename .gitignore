@@ -31,3 +31,6 @@ __pycache__/
 node_modules/
 .next/
 out/
+
+# la config con le chiavi vere resta locale
+web/config.js

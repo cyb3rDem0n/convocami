@@ -1,0 +1,219 @@
+/* CallMeUp — stessa identita visiva del documento di progetto.
+   Verde campo desaturato, neutri con una lieve deriva verso il verde. */
+
+:root {
+  --ground:    #F1F4F0;
+  --surface:   #FFFFFF;
+  --surface-2: #E7ECE6;
+  --line:      #CCD5CA;
+  --line-soft: #DFE6DD;
+  --ink:       #151B17;
+  --ink-2:     #45514A;
+  --ink-3:     #6B776F;
+
+  --pitch:     #2F6B47;
+  --pitch-2:   #3E8659;
+  --chalk:     #F4F8F3;
+  --warn:      #B3701C;
+  --crit:      #A83A2D;
+
+  --head: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+
+  --shadow: 0 1px 2px rgba(21,27,23,.06), 0 8px 24px -12px rgba(21,27,23,.18);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground:    #10140F;
+    --surface:   #171D18;
+    --surface-2: #1F2720;
+    --line:      #2E3A30;
+    --line-soft: #232C24;
+    --ink:       #E8EFE7;
+    --ink-2:     #AAB8AC;
+    --ink-3:     #7E8C80;
+    --pitch:     #64B383;
+    --pitch-2:   #4E9A6C;
+    --chalk:     #10140F;
+    --warn:      #D79A4A;
+    --crit:      #D9705F;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.7);
+  }
+}
+
+* { box-sizing: border-box; }
+
+/* L'attributo hidden perde contro qualsiasi regola che imposti display:
+   senza questa riga la barra in alto resta visibile sulla schermata di
+   accesso, dove non c'e ancora niente da navigare. */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 16px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- barra ---------- */
+
+header#barra {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; padding: 12px 20px;
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  position: sticky; top: 0; z-index: 5;
+}
+.logo {
+  font-family: "Archivo Black", var(--head); font-size: 19px;
+  letter-spacing: -.02em; background: none; border: 0; color: var(--ink);
+  padding: 0; cursor: pointer;
+}
+header nav { display: flex; gap: 14px; }
+
+/* ---------- impaginato ---------- */
+
+main {
+  max-width: 620px; margin: 0 auto;
+  padding-inline: 20px; padding-block: 28px 64px;
+}
+.caricamento { color: var(--ink-3); padding-block: 40px; text-align: center; }
+
+h1 {
+  font-family: "Archivo Black", var(--head);
+  font-size: clamp(30px, 8vw, 40px); line-height: 1; letter-spacing: -.025em;
+  margin: 0 0 10px; text-wrap: balance;
+}
+h2 {
+  font-family: var(--head); font-weight: 700; font-size: 21px;
+  letter-spacing: -.015em; margin: 32px 0 10px;
+}
+h3 { font-family: var(--head); font-weight: 600; font-size: 15px; margin: 24px 0 8px; }
+p { margin: 12px 0; }
+.sotto { color: var(--ink-2); margin-top: 0; }
+.mini { font-size: 13.5px; color: var(--ink-3); }
+
+/* ---------- controlli ---------- */
+
+label {
+  display: block; font-family: var(--mono); font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-3); margin: 16px 0 6px;
+}
+input, select, textarea {
+  width: 100%; font: inherit; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 9px; padding: 11px 13px;
+}
+input:focus-visible, select:focus-visible, button:focus-visible {
+  outline: 2px solid var(--pitch); outline-offset: 2px;
+}
+
+button {
+  font: inherit; font-weight: 600; cursor: pointer;
+  border-radius: 9px; border: 1px solid transparent;
+  padding: 11px 18px; transition: opacity .12s;
+}
+button:disabled { opacity: .5; cursor: default; }
+button.primario { background: var(--pitch); color: var(--chalk); width: 100%; }
+button.secondario { background: var(--surface); color: var(--ink); border-color: var(--line); width: 100%; }
+button.pericolo { background: var(--surface); color: var(--crit); border-color: var(--crit); width: 100%; }
+button.testo {
+  background: none; border: 0; color: var(--ink-2);
+  font-weight: 500; padding: 4px 2px; font-size: 14.5px;
+}
+button.testo:hover { color: var(--ink); }
+
+.azioni { display: grid; gap: 10px; margin-top: 20px; }
+
+/* ---------- schede ---------- */
+
+.scheda {
+  display: block; width: 100%; text-align: left;
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 16px 18px; margin-bottom: 10px;
+  box-shadow: var(--shadow); font: inherit; color: var(--ink);
+}
+.scheda .quando {
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--pitch); display: block;
+}
+.scheda .dove { font-family: var(--head); font-weight: 600; font-size: 17px; margin: 4px 0 2px; }
+.scheda .riga { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+
+.pannello {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: 12px; padding: 18px; margin: 18px 0;
+}
+.piatto { background: var(--surface-2); border-radius: 10px; padding: 14px 16px; margin: 16px 0; }
+.piatto > :first-child { margin-top: 0; }
+.piatto > :last-child { margin-bottom: 0; }
+
+/* ---------- contatore iscrizioni ---------- */
+
+.contatore { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 14px; }
+.contatore b {
+  font-family: var(--head); font-weight: 700; font-size: 34px;
+  line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+}
+.contatore span { color: var(--ink-3); font-size: 14px; }
+.barra-posti {
+  height: 8px; border-radius: 5px; background: var(--line-soft);
+  overflow: hidden; margin-bottom: 18px;
+}
+.barra-posti i { display: block; height: 100%; background: var(--pitch); border-radius: 5px; transition: width .3s; }
+.barra-posti.pieno i { background: var(--pitch-2); }
+
+/* ---------- elenco persone ---------- */
+
+.persone { list-style: none; padding: 0; margin: 10px 0 0; }
+.persone li {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 0; border-bottom: 1px solid var(--line-soft);
+}
+.persone li:last-child { border-bottom: 0; }
+.numero {
+  font-family: var(--mono); font-size: 12px; color: var(--ink-3);
+  width: 22px; flex: none; text-align: right; font-variant-numeric: tabular-nums;
+}
+.chi { flex: 1; min-width: 0; }
+.chi .nome { font-weight: 500; }
+.chi .etichetta { font-family: var(--mono); font-size: 11px; color: var(--ink-3); display: block; }
+.io { color: var(--pitch); }
+
+.pill {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em;
+  text-transform: uppercase; border: 1px solid var(--line);
+  border-radius: 20px; padding: 2px 9px; color: var(--ink-3); white-space: nowrap;
+}
+.pill.ok { color: var(--pitch); border-color: currentColor; }
+.pill.attesa { color: var(--warn); border-color: currentColor; }
+
+/* ---------- codice invito ---------- */
+
+.codice {
+  font-family: var(--mono); font-size: 22px; letter-spacing: .18em;
+  background: var(--surface-2); border-radius: 10px;
+  padding: 14px; text-align: center; margin: 10px 0;
+  user-select: all;
+}
+
+/* ---------- avviso ---------- */
+
+#avviso {
+  position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
+  max-width: min(92vw, 460px); z-index: 20;
+  background: var(--ink); color: var(--ground);
+  padding: 12px 18px; border-radius: 10px; font-size: 14.5px;
+  box-shadow: 0 10px 30px -10px rgba(0,0,0,.5);
+}
+#avviso.male { background: var(--crit); color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}

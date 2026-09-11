@@ -1,0 +1,33 @@
+# Gradle
+.gradle/
+build/
+local.properties
+
+# Android
+*.apk
+*.aab
+*.keystore
+*.jks
+release/
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Segreti: mai nel repo
+.env
+.env.*
+!.env.example
+secrets.properties
+google-services.json
+
+# Python (prototipo)
+__pycache__/
+*.pyc
+.venv/
+
+# Web app (fase 5)
+node_modules/
+.next/
+out/

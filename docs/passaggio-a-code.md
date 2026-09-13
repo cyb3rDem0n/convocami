@@ -44,8 +44,9 @@ proprio quello.
 
 ### Non fatto
 
-App Android oltre il guscio; pagamenti; punti affiatamento; voto e statistiche
-lato client; riepilogo partita; classifiche; zone; notifiche push ed email.
+App Android oltre il guscio; quota da mostrare; contatori presenze e ritiri;
+voto e statistiche lato client; riepilogo partita; classifiche; zone; notifiche
+push ed email.
 
 ---
 
@@ -110,16 +111,20 @@ l'etichetta mostrata è quella dedotta.
 
 ### 4.3 Organizzare
 
-L'organizzatore apre la partita: data, ora, campo, formato, quota a testa e
-**come si paga** — o si raccoglie da chi ha anticipato, o ognuno per sé. Tutti i
-membri ricevono la notifica.
+L'organizzatore apre la partita: data, ora, campo, formato e **quota a testa**.
+Tutti i membri ricevono la notifica.
 
-*Stato: creazione fatta, senza pagamento.*
+Sulla quota l'app **mostra un importo e basta**: niente incassi, niente IBAN,
+niente saldi da spuntare. È una decisione di prodotto, non una mancanza —
+toccare denaro vero significa entrare nella normativa sui pagamenti, e per una
+comitiva è sproporzionato. I soldi viaggiano come sono sempre viaggiati.
+
+*Stato: il campo `quota_eur` esiste già su `matches`. Manca solo mostrarlo.*
 
 ### 4.4 Iscriversi
 
 Iscrizione in ordine di arrivo. A quota raggiunta le convocazioni **si chiudono
-da sole** e compare la quota da pagare con le istruzioni.
+da sole** e compare la quota a testa.
 
 Oltre la capienza si va in lista d'attesa, **massimo due persone**. Il
 tredicesimo che ci prova viene informato che la lista è piena.
@@ -127,33 +132,23 @@ tredicesimo che ci prova viene informato che la lista è piena.
 C'è il tasto **mi ritiro**. Chi si ritira libera il posto e la prima riserva
 entra, avvisata.
 
-*Stato: fatto, tranne il tetto di due riserve e la quota.*
+*Stato: fatto, tranne il tetto di due riserve e la quota da mostrare.*
 
-### 4.5 Punti affiatamento
+### 4.5 Ritiri
 
-Ogni giocatore ha un valore legato alla sua affidabilità: quante volte c'è
-stato, quante volte si è tirato indietro.
+Ritirarsi **non comporta alcuna penalità**. Nessun punteggio, nessuna classifica
+di affidabilità, nessun meccanismo da tarare.
 
-**Il costo sta nel ritardo, non nel ritiro.** Questo è il punto su cui il
-meccanismo si gioca: se ritirarsi costa sempre, la gente smette di ritirarsi e
-semplicemente non si presenta — che per il gruppo è molto peggio, perché con un
-ritiro tre giorni prima entra una riserva, con un buco alle 21:00 si gioca in
-tredici. La scala premia quindi chi avvisa:
+Resta solo un dato nel profilo: **quante volte quella persona si è ritirata**.
+Va però mostrato sempre **in coppia con le presenze** — *«38 presenze, 4
+ritiri»* — e mai come numero solo. Un conteggio nudo penalizza chi gioca da
+anni rispetto a chi è arrivato il mese scorso, e finirebbe per dire il
+contrario di quello che vuole dire.
 
-| Evento | Effetto |
-|---|---|
-| Presenza | +2 |
-| Ritiro oltre 48 ore prima | 0 |
-| Ritiro fra 48 e 6 ore prima | −1 |
-| Ritiro sotto le 6 ore | −4 |
-| Non presentato (lo segna l'organizzatore) | −10 |
-| Riserva che entra all'ultimo e gioca | +4 |
+È il dato a fare il lavoro, non una regola: in una comitiva che si conosce,
+vedere i numeri di tutti basta e avanza.
 
-Valore mostrato come percentuale di affidabilità sulle ultime 20 partite, non
-come punteggio assoluto: un numero che scende e basta demotiva chi entra tardi
-nel gruppo.
-
-*Stato: da fare.*
+*Stato: da fare. Sono due contatori e una riga nel profilo.*
 
 ### 4.6 Le squadre
 
@@ -178,10 +173,13 @@ mostrata a tutti.
 
 L'organizzatore inserisce il risultato finale e segna eventuali assenti.
 
-**I gol reclamati vanno ancorati al risultato.** Se i claim di una squadra
-superano i gol che ha segnato, l'evento non si chiude e l'organizzatore
-arbitra. Senza questo vincolo, in tre partite la classifica cannonieri diventa
-finzione.
+**I gol reclamati devono combaciare con il risultato.** Se i claim di una
+squadra non tornano con i gol che ha segnato, l'evento **non si chiude**: l'app
+mostra lo scarto e l'organizzatore arbitra. Il vincolo va imposto dal database,
+non dal client, altrimenti basta una chiamata diretta per aggirarlo.
+
+Gli autogol vanno contati nel totale della squadra avversaria, o i conti non
+torneranno mai e nessuno capirà perché.
 
 *Stato: modello dati del voto fatto. Tutto il resto da fare.*
 
@@ -257,15 +255,13 @@ Ordinato per dipendenze. Ogni voce ha il criterio per dirla finita.
 ### Blocco B — completare il giro della partita
 
 3. **Tetto di due riserve** in `iscriviti`, con messaggio chiaro al terzo.
-4. **Quota e pagamento**: campi su `matches` (importo, modalità, chi anticipa,
-   riferimento per pagare), tabella dei saldi per giocatore.
-   L'app **tiene il conto, non muove soldi**: nessun incasso, nessun PSP.
-   *Finito quando:* a iscrizioni chiuse ogni convocato vede quanto deve e a chi,
-   e l'organizzatore può segnare chi ha saldato.
-5. **Punti affiatamento**: colonna, trigger che li aggiorna su ritiro e su
-   presenza, tabella `affidabilita_eventi` per lo storico.
-   *Finito quando:* un ritiro a 3 giorni non costa nulla e uno a 2 ore costa,
-   verificato con un test SQL.
+4. **Quota**: mostrare `matches.quota_eur` nella scheda partita e nella
+   conferma di iscrizione. Nient'altro — nessuna tabella di saldi, nessun
+   riferimento per pagare.
+   *Finito quando:* a iscrizioni chiuse ogni convocato vede quanto costa.
+5. **Contatori presenze e ritiri**: due colonne su `player_ratings`, aggiornate
+   da trigger su `match_signups` e alla chiusura dell'evento.
+   *Finito quando:* il profilo mostra «N presenze, M ritiri», sempre in coppia.
 6. **Due ruoli dichiarabili** al posto di uno: `player_roles.profilo_iniziale`
    diventa una coppia.
 

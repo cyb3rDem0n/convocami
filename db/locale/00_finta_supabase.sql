@@ -10,12 +10,12 @@
 -- Questo file crea la versione minima di quelle tre cose. Serve SOLO in locale:
 -- su Supabase non va eseguito mai, perche sovrascriverebbe roba vera.
 --
---   createdb callmeup
---   psql -d callmeup -f db/locale/00_finta_supabase.sql
---   psql -d callmeup -f db/migrations/001_schema.sql
---   psql -d callmeup -f db/migrations/002_ingresso_e_realtime.sql
---   psql -d callmeup -f db/migrations/003_email_privata.sql
---   psql -d callmeup -f db/migrations/004_regole_di_partita.sql
+--   createdb convocami
+--   psql -d convocami -f db/locale/00_finta_supabase.sql
+--   psql -d convocami -f db/migrations/001_schema.sql
+--   psql -d convocami -f db/migrations/002_ingresso_e_realtime.sql
+--   psql -d convocami -f db/migrations/003_email_privata.sql
+--   psql -d convocami -f db/migrations/004_regole_di_partita.sql
 --
 -- Vale la pena tenerlo: e la differenza fra "lo schema sembra giusto" e "lo
 -- schema e stato eseguito". Nel progetto, la seconda e l'unica che conta.

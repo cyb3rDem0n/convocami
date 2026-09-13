@@ -88,7 +88,7 @@ Solo quando in locale funziona.
 4. **Framework Preset**: *Other*. Nessun comando di build: non ce n'è.
 5. Deploy.
 
-Ottieni un indirizzo tipo `callmeup.vercel.app`. Torna in Supabase e mettilo
+Ottieni un indirizzo tipo `convocami.vercel.app`. Torna in Supabase e mettilo
 come **Site URL** e fra i **Redirect URLs**. Da quel momento mandi il link agli
 amici e ogni push ripubblica da solo.
 

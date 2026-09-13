@@ -5,12 +5,10 @@ partita, ci si iscrive, al quattordicesimo le iscrizioni si chiudono da sole e
 arriva la conferma con data, ora e campo. Le squadre le sorteggia l'app:
 equilibrate, ma diverse ogni volta.
 
-L'app si chiama **Convocami**: i suoi utenti sono italiani, e la parola *è* la
-funzione. Una cosa sola conserva il nome vecchio, il package Android
-`it.cyb3rdm0n.callmeup` — *call-up*, la convocazione — e non per affezione:
-dopo la pubblicazione sul Play Store quell'identificatore non si cambia più.
-Vale anche per i package Kotlin, che da lui discendono. Tutto il resto —
-cartella, repo, schermo, store — dice Convocami.
+**Convocami**: i suoi utenti sono italiani, e la parola *è* la funzione. Il
+package è `it.cyb3rdm0n.convocami`, e lo è per sempre — dopo la pubblicazione
+sul Play Store quell'identificatore non si cambia più, ed è l'unico pezzo del
+progetto che non ammette ripensamenti.
 
 ## Stato
 

@@ -1,7 +1,7 @@
 -- ============================================================================
 -- Le prove delle regole di 004, su un Postgres vero
 --
---   psql -d callmeup -f db/locale/01_prova_regole.sql
+--   psql -d convocami -f db/locale/01_prova_regole.sql
 --
 -- Non e un test unitario e non finge di esserlo: e la serata tipo, fatta
 -- succedere davvero. Venti iscritti su quattordici posti, uno che molla, uno

@@ -1,4 +1,4 @@
-package it.cyb3rdm0n.callmeup.teamdraw
+package it.cyb3rdm0n.convocami.teamdraw
 
 /**
  * I ruoli di movimento non sono fissi. Il portiere si.

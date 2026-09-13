@@ -2,7 +2,7 @@
 -keepattributes *Annotation*, InnerClasses
 -dontnote kotlinx.serialization.**
 -keepclassmembers class kotlinx.serialization.json.** { *; }
--keep,includedescriptorclasses class it.cyb3rdm0n.callmeup.**$$serializer { *; }
--keepclassmembers class it.cyb3rdm0n.callmeup.** { *** Companion; }
+-keep,includedescriptorclasses class it.cyb3rdm0n.convocami.**$$serializer { *; }
+-keepclassmembers class it.cyb3rdm0n.convocami.** { *** Companion; }
 
 # Il motore di sorteggio non usa reflection: non serve tenere altro.

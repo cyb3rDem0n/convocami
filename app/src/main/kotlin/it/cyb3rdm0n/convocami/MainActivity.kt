@@ -1,4 +1,4 @@
-package it.cyb3rdm0n.callmeup
+package it.cyb3rdm0n.convocami
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -15,8 +15,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import it.cyb3rdm0n.callmeup.teamdraw.FORMAZIONI
-import it.cyb3rdm0n.callmeup.ui.theme.ConvocamiTheme
+import it.cyb3rdm0n.convocami.teamdraw.FORMAZIONI
+import it.cyb3rdm0n.convocami.ui.theme.ConvocamiTheme
 
 /**
  * Schermata segnaposto della fase 0.

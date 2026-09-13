@@ -1,4 +1,4 @@
-package it.cyb3rdm0n.callmeup.ui.theme
+package it.cyb3rdm0n.convocami.ui.theme
 
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme

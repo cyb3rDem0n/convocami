@@ -82,10 +82,10 @@ ottimistica.
 cd web && python3 -m http.server 8000
 
 # il database, in locale, per provarlo davvero
-createdb callmeup
-psql -d callmeup -f db/locale/00_finta_supabase.sql   # SOLO in locale
-for f in db/migrations/0*.sql; do psql -d callmeup -f "$f"; done
-psql -d callmeup -f db/locale/01_prova_regole.sql     # 33 prove
+createdb convocami
+psql -d convocami -f db/locale/00_finta_supabase.sql   # SOLO in locale
+for f in db/migrations/0*.sql; do psql -d convocami -f "$f"; done
+psql -d convocami -f db/locale/01_prova_regole.sql     # 33 prove
 ```
 
 Migrazioni in `db/migrations/`, da eseguire in ordine nel SQL Editor di

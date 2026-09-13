@@ -92,8 +92,8 @@ utenti.
 
 ```bash
 keytool -genkeypair -v \
-  -keystore callmeup-release.jks \
-  -alias callmeup \
+  -keystore convocami-release.jks \
+  -alias convocami \
   -keyalg RSA -keysize 2048 -validity 10000
 ```
 
@@ -102,9 +102,9 @@ un'altra cartella) e fanne una copia in un posto sicuro. Poi crea
 `keystore.properties` nella radice del progetto:
 
 ```properties
-storeFile=/percorso/assoluto/callmeup-release.jks
+storeFile=/percorso/assoluto/convocami-release.jks
 storePassword=...
-keyAlias=callmeup
+keyAlias=convocami
 keyPassword=...
 ```
 

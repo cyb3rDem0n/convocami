@@ -6,11 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "it.cyb3rdm0n.callmeup"
+    namespace = "it.cyb3rdm0n.convocami"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "it.cyb3rdm0n.callmeup"
+        applicationId = "it.cyb3rdm0n.convocami"
         minSdk = 26          // Android 8.0: copre pressoche tutti i telefoni in uso
         targetSdk = 35
         versionCode = 1

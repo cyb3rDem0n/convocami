@@ -230,9 +230,43 @@ ma tre avvertenze da chi la implementerà:
    etichette: è esattamente il linguaggio giusto, e si può fare bene con CSS
    puro senza appesantire.
 
-Palette attuale da rivedere in chiave scura: verde campo `#2F6B47` e
-`#64B383`, inchiostro `#10140F`. Caratteri: Archivo per i titoli, IBM Plex Sans
-per il testo, IBM Plex Mono per i dati.
+### Le quattro schermate di riferimento
+
+Mockup costruiti con i dati veri del progetto:
+https://claude.ai/code/artifact/a84f03cc-c62c-4084-9cc4-8a01424474af
+
+Figurina, rivelazione delle squadre, schermata partita e schermata voto. Sono
+CSS puro, quindi il codice si può leggere e riusare direttamente.
+
+### Palette e caratteri
+
+| Token | Valore | Dove |
+|---|---|---|
+| `--notte` | `#070B08` | sfondo, nero con deriva verde |
+| `--erba` | `#0E1712` | superfici |
+| `--linea` | `#1E2C24` | bordi |
+| `--verde` | `#2BE07A` | accento — contatori, stati, azione primaria |
+| `--oro` | `#E9C46A` | solo figurina ed etichette guadagnate |
+| `--gesso` | `#EDF2EC` | testo |
+
+Squadre: bianca `#F1F4F0`, nera `#10150F`. Il bianco e nero non è decorazione,
+è il sistema di colore che distingue le due squadre ovunque compaiano.
+
+Caratteri: **Archivo Black** per numeri e titoli, **Barlow Condensed** per le
+etichette da tabellone, **Barlow** per il testo.
+
+### Librerie
+
+| Libreria | Peso | Verdetto |
+|---|---|---|
+| CSS + Web Animations API | 0 kB | Il 90% di tutto. Figurine, barre, gradienti, stati. |
+| Motion (`motion.dev`) | ~18 kB | Solo per la rivelazione delle squadre. Si importa come modulo, niente build. |
+| `canvas-confetti` | ~6 kB | Facoltativa, per l'etichetta guadagnata. |
+| GSAP | ~23 kB | Gratuito da fine 2024, ma qui è più potente del necessario. |
+| React + libreria UI | ~140 kB | No: rompe la scelta di non avere un passaggio di build, per una trentina di componenti in tutto. |
+
+L'aspetto da videogioco non viene dai pacchetti: viene da gradienti stratificati,
+caratteri giusti e numeri grandi.
 
 ---
 

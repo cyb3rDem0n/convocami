@@ -9,18 +9,28 @@ Il nome è *call-up*, la convocazione.
 
 ## Stato
 
-**Fase 0 — impianto.** Il motore di sorteggio è scritto, coperto da 63 test e funzionante;
-lo schema del database è pronto da eseguire; l'app Android si compila e si
-installa, ma mostra ancora una schermata segnaposto.
+**Chi riprende lo sviluppo parte da
+[docs/passaggio-a-code.md](docs/passaggio-a-code.md)**: stato reale voce per
+voce, caso d'uso completo e lavoro diviso in blocchi, ciascuno con il criterio
+per dirlo finito. Le regole che non devono mai uscire dal contesto stanno in
+[CLAUDE.md](CLAUDE.md).
+
+Il motore di sorteggio è scritto, compilato e coperto da 63 test eseguiti. Lo
+schema del database è stato eseguito su un Postgres vero e i trigger sono stati
+provati da capo a fondo. La web app è completa nelle schermate di accesso,
+gruppo, partita e iscrizione, **ma non è mai stata eseguita contro un database
+vero**: qui la rete verso supabase.com era chiusa. È il primo passo di chi
+continua. L'app Android si compila e si installa, ma mostra ancora una
+schermata segnaposto.
 
 | | Fase | |
 |---|---|---|
 | ✅ | **0 · Impianto** | Schema SQL, motore di sorteggio, progetto compilabile |
-| | 1 · Identità e gruppo | Registrazione, profilo con foto, codice d'invito |
-| | 2 · Partite e convocazioni | Iscrizioni in tempo reale, chiusura automatica, push ed email |
+| ~ | 1 · Identità e gruppo | Registrazione e codice d'invito fatti sul web; manca la foto |
+| ~ | 2 · Partite e convocazioni | Iscrizioni in tempo reale e chiusura automatica fatte; mancano push ed email |
 | | 3 · Squadre | Taratura skill, schermata del campo, notifica formazione |
 | | 4 · Rendimento | Risultato, marcatori, evoluzione skill, classifiche |
-| | 5 · Web app | Next.js sullo stesso database |
+| | 5 · Android | Le stesse schermate sul telefono |
 | | 6 · Pubblicazione | Play Store |
 
 ## Com'è fatto
@@ -29,9 +39,15 @@ installa, ma mostra ancora una schermata segnaposto.
 app/                 app Android — Kotlin, Jetpack Compose, Material 3
 core/teamdraw/       motore di sorteggio, profili e voto — Kotlin puro
 db/migrations/       schema Postgres, con trigger e Row Level Security
-docs/                impianto tecnico e guida a build e pubblicazione
+web/                 web app — HTML, CSS e un modulo ES, senza passaggio di build
+design/              tokens.json (colori e font, fonte unica) e schermate.html
+docs/                impianto tecnico, passaggio di consegne, build e pubblicazione
 tools/proto/         prototipo Python usato per validare l'algoritmo
 ```
+
+`design/schermate.html` si apre nel browser e basta: sono le quattro schermate
+di riferimento — convocazione, formazione, figurina, voto — da cui si legge la
+direzione grafica meglio che da qualunque descrizione.
 
 Due scelte meritano una spiegazione.
 
@@ -50,6 +66,11 @@ nuova implementazione, non riscrivere l'app.
 ./gradlew :core:teamdraw:test   # 63 test del motore
 ./gradlew assembleDebug         # APK installabile
 ```
+
+Il binario del wrapper non è versionato: la prima volta lo generi con
+`gradle wrapper --gradle-version 8.12`, oppure aprendo il progetto in Android
+Studio, che lo crea da solo. Il perché è in
+[docs/build-e-deploy.md](docs/build-e-deploy.md).
 
 Per avere la web app in mano e farla provare agli altri, il percorso più corto
 è **[docs/primo-avvio.md](docs/primo-avvio.md)**: venti minuti, e non serve né

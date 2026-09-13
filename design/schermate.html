@@ -1,0 +1,609 @@
+<title>Bianca contro Nera</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&display=swap">
+
+<style>
+  /* Mondo unico e dichiarato: una UI da videogioco non cambia tema con il
+     sistema operativo. Niente media query, ma ogni colore dipinto a mano. */
+  :root {
+    --notte:  #070B08;
+    --erba:   #0E1712;
+    --erba-2: #14201A;
+    --linea:  #1E2C24;
+    --verde:  #2BE07A;
+    --verde-cupo: #1A8F4F;
+    --oro:    #E9C46A;
+    --oro-cupo: #A98431;
+    --gesso:  #EDF2EC;
+    --fumo:   #8FA396;
+    --fumo-2: #5C6D62;
+    --bianca: #F1F4F0;
+    --nera:   #10150F;
+
+    --display: "Archivo Black", "Arial Black", sans-serif;
+    --cond: "Barlow Condensed", "Arial Narrow", sans-serif;
+    --ui: "Barlow", system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background:
+      radial-gradient(120% 80% at 50% -10%, #12201A 0%, transparent 60%),
+      var(--notte);
+    color: var(--gesso);
+    font-family: var(--ui);
+    font-size: 16px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 0 100px; }
+
+  /* ---------- testata ---------- */
+
+  header.top { padding-block: 64px 40px; border-bottom: 1px solid var(--linea); }
+  .kicker {
+    font-family: var(--cond); font-size: 13px; font-weight: 600;
+    letter-spacing: .22em; text-transform: uppercase; color: var(--verde);
+    margin: 0 0 16px;
+  }
+  h1 {
+    font-family: var(--display); font-size: clamp(40px, 9vw, 76px);
+    line-height: .9; letter-spacing: -.02em; margin: 0; text-wrap: balance;
+    background: linear-gradient(180deg, var(--gesso) 30%, #9FB5A6 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  header.top p { max-width: 58ch; color: var(--fumo); margin: 20px 0 0; font-size: 17px; }
+
+  /* ---------- griglia schermate ---------- */
+
+  .schermate {
+    display: grid; gap: 40px 32px; padding-block: 56px 0;
+    grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  }
+  .blocco { display: flex; flex-direction: column; gap: 18px; }
+
+  .telefono {
+    background: var(--erba); border: 1px solid var(--linea);
+    border-radius: 28px; padding: 10px; overflow: hidden;
+    box-shadow: 0 30px 60px -30px #000, 0 0 0 1px #000 inset;
+  }
+  .schermo {
+    border-radius: 20px; overflow: hidden; background: var(--notte);
+    aspect-ratio: 9 / 17; display: flex; flex-direction: column;
+    position: relative;
+  }
+
+  .didascalia .nome {
+    font-family: var(--cond); font-size: 12.5px; font-weight: 700;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--verde);
+    display: block; margin-bottom: 6px;
+  }
+  .didascalia p { margin: 0; font-size: 14.5px; color: var(--fumo); }
+  .didascalia p + p { margin-top: 10px; color: var(--fumo-2); font-size: 13.5px; }
+
+  /* ---------- barra di stato finta ---------- */
+
+  .stato {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 16px 4px; font-family: var(--cond); font-size: 11px;
+    font-weight: 600; color: var(--fumo-2); letter-spacing: .08em;
+  }
+
+  .corpo { flex: 1; padding: 8px 16px 16px; display: flex; flex-direction: column; min-height: 0; }
+
+  /* ---------- 1. figurina ---------- */
+
+  .figurina {
+    position: relative; border-radius: 16px; padding: 16px 16px 14px;
+    background:
+      linear-gradient(160deg, #F3D98E 0%, var(--oro) 26%, #8F6E24 62%, #55401A 100%);
+    color: #1A1405;
+    box-shadow: 0 18px 40px -20px #000;
+  }
+  .figurina::after {
+    content: ""; position: absolute; inset: 0; border-radius: 16px;
+    background: linear-gradient(115deg, rgba(255,255,255,.42) 0%, transparent 38%);
+    pointer-events: none;
+  }
+  .fig-testa { display: flex; gap: 14px; align-items: flex-start; }
+  .fig-ovr { line-height: .82; }
+  .fig-ovr b { font-family: var(--display); font-size: 46px; display: block; letter-spacing: -.03em; }
+  .fig-ovr span {
+    font-family: var(--cond); font-size: 17px; font-weight: 700;
+    letter-spacing: .14em; display: block; margin-top: 2px;
+  }
+  .fig-foto {
+    margin-left: auto; width: 74px; height: 74px; border-radius: 50%;
+    background: radial-gradient(circle at 50% 34%, #2F4438, #101A14);
+    display: grid; place-items: center;
+    font-family: var(--display); font-size: 27px; color: var(--oro);
+    border: 2px solid rgba(26,20,5,.35);
+  }
+  .fig-nome {
+    font-family: var(--display); font-size: 24px; letter-spacing: -.01em;
+    text-transform: uppercase; margin: 12px 0 2px; line-height: 1;
+  }
+  .fig-zona {
+    font-family: var(--cond); font-size: 12.5px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; opacity: .72;
+  }
+  .fig-stats {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2px 18px;
+    margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(26,20,5,.28);
+  }
+  .fig-stats div {
+    display: flex; justify-content: space-between; align-items: baseline;
+    font-family: var(--cond); font-size: 14px; font-weight: 600; letter-spacing: .1em;
+  }
+  .fig-stats b { font-family: var(--display); font-size: 15px; letter-spacing: -.02em; }
+
+  .fig-ruoli { display: grid; gap: 5px; margin-top: 14px; }
+  .fig-ruoli > div { display: grid; grid-template-columns: 30px 1fr; gap: 8px; align-items: center; }
+  .fig-ruoli span {
+    font-family: var(--cond); font-size: 11px; font-weight: 700;
+    letter-spacing: .1em; opacity: .7;
+  }
+  .fig-ruoli i {
+    height: 5px; border-radius: 3px; background: rgba(26,20,5,.22);
+    display: block; position: relative;
+  }
+  .fig-ruoli i::after {
+    content: ""; position: absolute; inset: 0 auto 0 0; width: var(--w);
+    background: #1A1405; border-radius: 3px;
+  }
+
+  .distintivo {
+    display: inline-flex; align-items: center; gap: 7px; margin-top: 14px;
+    background: #1A1405; color: var(--oro); border-radius: 20px;
+    padding: 5px 12px 5px 9px;
+    font-family: var(--cond); font-size: 12px; font-weight: 700; letter-spacing: .14em;
+  }
+  .distintivo b { font-family: var(--display); font-size: 11px; letter-spacing: 0; }
+
+  .presenze {
+    margin-top: 14px; display: flex; gap: 18px;
+    font-family: var(--cond); font-size: 13px; font-weight: 600;
+    letter-spacing: .08em; color: var(--fumo); text-transform: uppercase;
+  }
+  .presenze b { font-family: var(--display); color: var(--gesso); font-size: 15px; letter-spacing: -.02em; }
+
+  .storico { margin-top: auto; padding-top: 16px; }
+  .storico-titolo {
+    font-family: var(--cond); font-size: 11px; font-weight: 700;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--fumo-2);
+    margin-bottom: 8px;
+  }
+  .storico-righe { display: grid; gap: 6px; }
+  .storico-righe > div {
+    display: grid; grid-template-columns: 46px 6px 1fr; gap: 10px;
+    align-items: center;
+    font-family: var(--cond); font-size: 13px; font-weight: 600; letter-spacing: .04em;
+    color: var(--fumo-2);
+  }
+  .storico-righe b { font-family: var(--ui); font-size: 12.5px; font-weight: 500; color: var(--fumo); }
+  .storico-righe i {
+    width: 6px; height: 6px; border-radius: 50%; background: #23332B; display: block;
+  }
+  .storico-righe i.v { background: var(--verde); }
+  .storico-righe i.s { background: var(--oro-cupo); }
+
+  /* ---------- 2. rivelazione squadre ---------- */
+
+  .duello { position: relative; flex: 1; display: flex; flex-direction: column; }
+  .duello-testa { text-align: center; padding-block: 2px 10px; }
+  .duello-testa .eyebrow {
+    font-family: var(--cond); font-size: 11px; font-weight: 700;
+    letter-spacing: .22em; text-transform: uppercase; color: var(--verde);
+  }
+  .duello-testa .scarto {
+    font-family: var(--display); font-size: 13px; color: var(--fumo-2);
+    letter-spacing: -.01em; margin-top: 3px;
+  }
+
+  .lame { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .lama { border-radius: 12px; padding: 12px 10px; position: relative; overflow: hidden; }
+  .lama.b { background: linear-gradient(155deg, var(--bianca), #BFC9BE); color: #0B0F0B; }
+  .lama.n { background: linear-gradient(155deg, #26301F, var(--nera)); color: var(--gesso); border: 1px solid #2E3A2B; }
+  .lama h4 {
+    font-family: var(--display); font-size: 15px; margin: 0; letter-spacing: -.01em;
+    text-transform: uppercase;
+  }
+  .lama .forza {
+    font-family: var(--display); font-size: 25px; letter-spacing: -.03em;
+    line-height: 1; margin-top: 5px;
+  }
+  .lama .forza small { font-family: var(--cond); font-size: 11px; font-weight: 700; letter-spacing: .12em; display: block; opacity: .6; }
+  .lama ul { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 3px; }
+  .lama li {
+    display: flex; justify-content: space-between; gap: 6px;
+    font-family: var(--cond); font-size: 13px; font-weight: 600; letter-spacing: .02em;
+  }
+  .lama li b { font-family: var(--display); font-size: 12px; letter-spacing: -.02em; }
+  .lama li em { font-style: normal; opacity: .55; font-size: 11px; }
+
+  .campetto { margin-top: 10px; border-radius: 12px; overflow: hidden; border: 1px solid var(--linea); }
+  .campetto svg { display: block; width: 100%; height: auto; }
+
+  /* ---------- 3. partita ---------- */
+
+  .quota-riga {
+    display: flex; align-items: baseline; justify-content: space-between;
+    padding: 10px 12px; border-radius: 10px; background: var(--erba-2);
+    border: 1px solid var(--linea); margin-top: 10px;
+  }
+  .quota-riga span { font-family: var(--cond); font-size: 12px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--fumo); }
+  .quota-riga b { font-family: var(--display); font-size: 19px; letter-spacing: -.02em; }
+
+  .conta { display: flex; align-items: baseline; gap: 8px; margin-top: 4px; }
+  .conta b { font-family: var(--display); font-size: 38px; line-height: 1; letter-spacing: -.03em; color: var(--verde); }
+  .conta span { font-family: var(--cond); font-size: 13px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--fumo); }
+  .posti { height: 6px; border-radius: 4px; background: #1A2620; margin-top: 8px; overflow: hidden; }
+  .posti i { display: block; height: 100%; width: 100%; background: linear-gradient(90deg, var(--verde-cupo), var(--verde)); }
+
+  .elenco { list-style: none; margin: 12px 0 0; padding: 0; overflow: hidden; flex: 1; }
+  .elenco li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 7px 0; border-bottom: 1px solid #16221C;
+  }
+  .pallino {
+    width: 26px; height: 26px; border-radius: 50%; flex: none;
+    background: linear-gradient(150deg, #22332A, #131D18);
+    display: grid; place-items: center; border: 1px solid #253329;
+    font-family: var(--display); font-size: 10px; color: var(--fumo);
+  }
+  .elenco .chi { flex: 1; min-width: 0; }
+  .elenco .chi b { font-weight: 600; font-size: 14.5px; display: block; }
+  .elenco .chi span {
+    font-family: var(--cond); font-size: 11px; font-weight: 600;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--fumo-2);
+  }
+  .elenco .val { font-family: var(--display); font-size: 14px; color: var(--fumo); letter-spacing: -.02em; }
+
+  .bottone {
+    margin-top: 12px; border: 0; border-radius: 12px; width: 100%;
+    padding: 13px; font-family: var(--display); font-size: 14px;
+    letter-spacing: .02em; text-transform: uppercase; cursor: default;
+    background: linear-gradient(180deg, var(--verde), var(--verde-cupo));
+    color: #04210F;
+    box-shadow: 0 8px 22px -10px var(--verde-cupo);
+  }
+  .bottone.quieto { background: transparent; color: var(--fumo); border: 1px solid var(--linea); box-shadow: none; }
+
+  /* ---------- 4. voto ---------- */
+
+  .fase-testa { display: flex; align-items: baseline; justify-content: space-between; }
+  .fase-testa .passo { font-family: var(--cond); font-size: 12px; font-weight: 700; letter-spacing: .16em; color: var(--verde); }
+  .fase-domanda {
+    font-family: var(--display); font-size: 21px; line-height: 1.08;
+    letter-spacing: -.015em; margin: 8px 0 2px; text-wrap: balance;
+  }
+  .fase-nota { font-size: 13px; color: var(--fumo-2); margin: 0; }
+
+  .facce { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+  .faccia {
+    border-radius: 12px; padding: 12px 6px 9px; text-align: center;
+    background: var(--erba-2); border: 1px solid var(--linea);
+  }
+  .faccia.scelto { border-color: var(--verde); background: linear-gradient(180deg, #172C20, #101B15); }
+  .faccia .tondo {
+    width: 38px; height: 38px; border-radius: 50%; margin: 0 auto 7px;
+    background: radial-gradient(circle at 50% 34%, #2C4136, #0F1813);
+    display: grid; place-items: center;
+    font-family: var(--display); font-size: 14px; color: var(--fumo);
+  }
+  .faccia.scelto .tondo { background: radial-gradient(circle at 50% 34%, var(--verde), var(--verde-cupo)); color: #04210F; }
+  .faccia b { display: block; font-size: 12.5px; font-weight: 600; }
+  .faccia span { font-family: var(--cond); font-size: 10px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--fumo-2); }
+
+  .avanzamento { display: flex; gap: 5px; margin-top: 14px; }
+  .avanzamento i { flex: 1; height: 3px; border-radius: 2px; background: #1B2822; }
+  .avanzamento i.fatto { background: var(--verde); }
+
+  /* ---------- note finali ---------- */
+
+  .note { padding-block: 76px 0; border-top: 1px solid var(--linea); margin-top: 76px; }
+  .note h2 {
+    font-family: var(--display); font-size: clamp(26px, 4.4vw, 36px);
+    letter-spacing: -.02em; margin: 0 0 10px; text-wrap: balance;
+  }
+  .note > p { max-width: 64ch; color: var(--fumo); margin: 0 0 8px; }
+
+  .librerie { display: grid; gap: 12px; margin-top: 30px; }
+  .lib {
+    display: grid; grid-template-columns: 128px 1fr auto; gap: 18px;
+    align-items: baseline; padding: 15px 18px;
+    background: var(--erba); border: 1px solid var(--linea); border-radius: 12px;
+  }
+  .lib .n { font-family: var(--display); font-size: 15px; letter-spacing: -.01em; }
+  .lib .d { color: var(--fumo); font-size: 14.5px; }
+  .lib .p {
+    font-family: var(--cond); font-size: 12px; font-weight: 700;
+    letter-spacing: .12em; text-transform: uppercase; white-space: nowrap;
+  }
+  .lib .p.si { color: var(--verde); }
+  .lib .p.no { color: var(--fumo-2); }
+
+  .avvertenza {
+    margin-top: 30px; border-left: 2px solid var(--oro); padding: 4px 0 4px 18px;
+  }
+  .avvertenza h3 {
+    font-family: var(--cond); font-size: 13px; font-weight: 700;
+    letter-spacing: .16em; text-transform: uppercase; color: var(--oro);
+    margin: 0 0 8px;
+  }
+  .avvertenza p { margin: 0 0 10px; color: var(--fumo); max-width: 64ch; }
+  .avvertenza p:last-child { margin-bottom: 0; }
+
+  @media (max-width: 700px) {
+    .lib { grid-template-columns: 1fr; gap: 4px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="top">
+    <p class="kicker">CallMeUp · direzione visiva</p>
+    <h1>Bianca contro Nera</h1>
+    <p>Quattro schermate nel registro che hai chiesto: scuro, lucido, numeri grandi. Sono costruite con i dati veri del progetto — il sorteggio qui sotto è quello uscito dal motore, non un riempitivo — perché una direzione visiva si giudica sul contenuto che dovrà reggere, non su nomi inventati.</p>
+  </header>
+
+  <div class="schermate">
+
+    <!-- ============ 1. LA FIGURINA ============ -->
+    <div class="blocco">
+      <div class="telefono">
+        <div class="schermo">
+          <div class="stato"><span>21:04</span><span>CALLMEUP</span></div>
+          <div class="corpo">
+            <div class="figurina">
+              <div class="fig-testa">
+                <div class="fig-ovr">
+                  <b>82</b>
+                  <span>DIF</span>
+                </div>
+                <div class="fig-foto">EM</div>
+              </div>
+              <div class="fig-nome">Emanuele</div>
+              <div class="fig-zona">Bicocca Region</div>
+
+              <div class="fig-stats">
+                <div><span>VEL</span><b>71</b></div>
+                <div><span>DIF</span><b>88</b></div>
+                <div><span>TIR</span><b>54</b></div>
+                <div><span>FIS</span><b>79</b></div>
+                <div><span>PAS</span><b>73</b></div>
+                <div><span>TEC</span><b>66</b></div>
+              </div>
+
+              <div class="fig-ruoli">
+                <div><span>POR</span><i style="--w:20%"></i></div>
+                <div><span>DIF</span><i style="--w:100%"></i></div>
+                <div><span>CEN</span><i style="--w:48%"></i></div>
+                <div><span>ATT</span><i style="--w:22%"></i></div>
+              </div>
+
+              <div class="distintivo"><b>MURO</b> · questa settimana</div>
+            </div>
+
+            <div class="presenze">
+              <div><b>38</b> presenze</div>
+              <div><b>4</b> ritiri</div>
+            </div>
+
+            <div class="storico">
+              <div class="storico-titolo">Ultime cinque</div>
+              <div class="storico-righe">
+                <div><span>5 set</span><i class="v"></i><b>Muro</b></div>
+                <div><span>29 ago</span><i></i><b>—</b></div>
+                <div><span>22 ago</span><i class="v"></i><b>1 gol</b></div>
+                <div><span>15 ago</span><i class="s"></i><b>Ritirato</b></div>
+                <div><span>8 ago</span><i class="v"></i><b>2 assist</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="didascalia">
+        <span class="nome">La figurina</span>
+        <p>L'idea più forte che hai avuto. Le quattro barre sono la <em>propensione</em> che l'app ha dedotto dai voti: non un numero inventato per far scena, ma il dato che decide dove giocherà domenica.</p>
+        <p>Presenze e ritiri stanno sempre in coppia. Il ritiro da solo punirebbe chi gioca da tre anni.</p>
+      </div>
+    </div>
+
+    <!-- ============ 2. LE SQUADRE ============ -->
+    <div class="blocco">
+      <div class="telefono">
+        <div class="schermo">
+          <div class="stato"><span>21:04</span><span>GIOVEDÌ 21:00</span></div>
+          <div class="corpo duello">
+            <div class="duello-testa">
+              <div class="eyebrow">Squadre fatte</div>
+              <div class="scarto">scarto 0.4 su 385</div>
+            </div>
+
+            <div class="lame">
+              <div class="lama b">
+                <h4>Bianca</h4>
+                <div class="forza">385.2<small>forza</small></div>
+                <ul>
+                  <li><span>Giuseppe</span><b>57</b></li>
+                  <li><span>Dario <em>DIF</em></span><b>70</b></li>
+                  <li><span>Matteo <em>DIF</em></span><b>68</b></li>
+                  <li><span>Andrea</span><b>61</b></li>
+                  <li><span>Antonio</span><b>56</b></li>
+                  <li><span>Fabio</span><b>42</b></li>
+                  <li><span>Stefano</span><b>33</b></li>
+                </ul>
+              </div>
+              <div class="lama n">
+                <h4>Nera</h4>
+                <div class="forza">385.7<small>forza</small></div>
+                <ul>
+                  <li><span>Marco</span><b>49</b></li>
+                  <li><span>Emanuele</span><b>82</b></li>
+                  <li><span>Paolo</span><b>61</b></li>
+                  <li><span>Riccardo</span><b>56</b></li>
+                  <li><span>Simone</span><b>52</b></li>
+                  <li><span>Luca <em>CEN</em></span><b>46</b></li>
+                  <li><span>Gianni</span><b>39</b></li>
+                </ul>
+              </div>
+            </div>
+
+            <div class="campetto">
+              <svg viewBox="0 0 240 132" role="img" aria-label="Campo con le due formazioni">
+                <rect width="240" height="132" fill="#0C1610"/>
+                <g stroke="#1F3328" stroke-width="1" fill="none">
+                  <rect x="4" y="4" width="232" height="124"/>
+                  <line x1="120" y1="4" x2="120" y2="128"/>
+                  <circle cx="120" cy="66" r="18"/>
+                </g>
+                <g fill="#F1F4F0">
+                  <circle cx="20" cy="66" r="5"/>
+                  <circle cx="48" cy="40" r="5"/><circle cx="48" cy="92" r="5"/>
+                  <circle cx="76" cy="28" r="5"/><circle cx="76" cy="66" r="5"/><circle cx="76" cy="104" r="5"/>
+                  <circle cx="102" cy="66" r="5"/>
+                </g>
+                <g fill="#354A3B" stroke="#6E8A76" stroke-width="1">
+                  <circle cx="220" cy="66" r="5"/>
+                  <circle cx="192" cy="40" r="5"/><circle cx="192" cy="92" r="5"/>
+                  <circle cx="164" cy="28" r="5"/><circle cx="164" cy="66" r="5"/><circle cx="164" cy="104" r="5"/>
+                  <circle cx="138" cy="66" r="5"/>
+                </g>
+              </svg>
+            </div>
+
+            <button class="bottone" type="button">Sistema le squadre</button>
+          </div>
+        </div>
+      </div>
+      <div class="didascalia">
+        <span class="nome">La rivelazione</span>
+        <p>Qui sta il momento, ed è l'unico punto dove metterei un'animazione vera: le due lame che entrano da fuori schermo e i nomi che compaiono a cascata. Dura ottocento millisecondi e la si guarda ogni settimana.</p>
+        <p>Le sigle accanto a tre nomi dicono chi gioca fuori dalla sua zona. Nel calcetto è normale, e infatti è una nota, non un allarme.</p>
+      </div>
+    </div>
+
+    <!-- ============ 3. LA PARTITA ============ -->
+    <div class="blocco">
+      <div class="telefono">
+        <div class="schermo">
+          <div class="stato"><span>21:04</span><span>CAMPO ROSSO</span></div>
+          <div class="corpo">
+            <div class="conta"><b>14</b><span>su 14 · al completo</span></div>
+            <div class="posti"><i></i></div>
+
+            <div class="quota-riga">
+              <span>Quota a testa</span>
+              <b>7,00 €</b>
+            </div>
+
+            <ul class="elenco">
+              <li><span class="pallino">1</span><span class="chi"><b>Giuseppe</b><span>Portiere</span></span><span class="val">57</span></li>
+              <li><span class="pallino">2</span><span class="chi"><b>Emanuele</b><span>Difensore</span></span><span class="val">82</span></li>
+              <li><span class="pallino">3</span><span class="chi"><b>Dario</b><span>Attaccante</span></span><span class="val">70</span></li>
+              <li><span class="pallino">4</span><span class="chi"><b>Matteo</b><span>Centrocampista</span></span><span class="val">68</span></li>
+              <li><span class="pallino">5</span><span class="chi"><b>Simone</b><span>Jolly</span></span><span class="val">52</span></li>
+              <li><span class="pallino">6</span><span class="chi"><b>Federico</b><span>Attaccante · di partenza</span></span><span class="val">—</span></li>
+            </ul>
+
+            <button class="bottone quieto" type="button">Mi ritiro</button>
+          </div>
+        </div>
+      </div>
+      <div class="didascalia">
+        <span class="nome">La partita</span>
+        <p>È la schermata più guardata, di sera, in piedi fuori dal campo. Qui ho <strong>tolto</strong> invece di aggiungere: niente vetro, niente riflessi, contrasto alto. Il verde lo usa solo il contatore, che è l'unica cosa che si cerca davvero.</p>
+        <p>Federico non ha ancora un numero perché non ha ancora giocato, e l'app lo dice invece di inventarne uno.</p>
+      </div>
+    </div>
+
+    <!-- ============ 4. IL VOTO ============ -->
+    <div class="blocco">
+      <div class="telefono">
+        <div class="schermo">
+          <div class="stato"><span>22:48</span><span>90' DAL FISCHIO</span></div>
+          <div class="corpo">
+            <div class="fase-testa">
+              <span class="passo">FASE 3 DI 4</span>
+              <span class="passo" style="color:var(--fumo-2)">REGIA</span>
+            </div>
+            <h2 class="fase-domanda">Chi ha fatto giocare meglio la squadra?</h2>
+            <p class="fase-nota">Un nome, o nessuno se non si è distinto nessuno.</p>
+
+            <div class="facce">
+              <div class="faccia"><div class="tondo">GI</div><b>Giuseppe</b><span>POR</span></div>
+              <div class="faccia scelto"><div class="tondo">MA</div><b>Matteo</b><span>CEN</span></div>
+              <div class="faccia"><div class="tondo">DA</div><b>Dario</b><span>ATT</span></div>
+              <div class="faccia"><div class="tondo">EM</div><b>Emanuele</b><span>DIF</span></div>
+              <div class="faccia"><div class="tondo">AN</div><b>Andrea</b><span>CEN</span></div>
+              <div class="faccia"><div class="tondo">SI</div><b>Simone</b><span>JOLLY</span></div>
+            </div>
+
+            <div class="avanzamento">
+              <i class="fatto"></i><i class="fatto"></i><i class="fatto"></i><i></i>
+            </div>
+
+            <button class="bottone" type="button">Avanti · Porta</button>
+          </div>
+        </div>
+      </div>
+      <div class="didascalia">
+        <span class="nome">Il voto</span>
+        <p>Quattro domande, un tocco ciascuna, quindici secondi. Il dubbio non è estetico: è se la gente lo farà davvero, sudata, mentre gli altri si cambiano. Per questo una schermata per fase e non una griglia da riempire.</p>
+        <p>«Nessuno» deve restare a un tocco di distanza, o si vota a caso pur di finire.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ============ NOTE ============ -->
+  <section class="note">
+    <h2>Le librerie: meno di quante ne immagini</h2>
+    <p>Tutto quello che hai visto qui sopra è CSS puro. Zero librerie, zero passaggio di build, e gira su un telefono di sei anni fa. L'aspetto da videogioco non viene dai pacchetti: viene da gradienti stratificati, caratteri giusti e numeri grandi.</p>
+    <p>Quello per cui una libreria serve davvero è uno solo — il <em>momento</em>, cioè la rivelazione delle squadre.</p>
+
+    <div class="librerie">
+      <div class="lib">
+        <span class="n">CSS + WAAPI</span>
+        <span class="d">Figurine, barre, gradienti, transizioni di stato. Il 90% di quello che vedi.</span>
+        <span class="p si">0 kB · usalo</span>
+      </div>
+      <div class="lib">
+        <span class="n">Motion</span>
+        <span class="d">Per la rivelazione: sequenze a cascata e uscite pulite. API moderna, si importa come modulo senza build.</span>
+        <span class="p si">~18 kB · una schermata</span>
+      </div>
+      <div class="lib">
+        <span class="n">GSAP</span>
+        <span class="d">Gratuito da fine 2024, plugin inclusi. Più potente del necessario qui: ha senso solo se le animazioni diventano il prodotto.</span>
+        <span class="p no">~23 kB · non ora</span>
+      </div>
+      <div class="lib">
+        <span class="n">canvas-confetti</span>
+        <span class="d">Per l'etichetta guadagnata a fine partita. Una riga, e quel momento vale la pena festeggiarlo.</span>
+        <span class="p si">~6 kB · se ti va</span>
+      </div>
+      <div class="lib">
+        <span class="n">React + libreria UI</span>
+        <span class="d">Rompe la scelta di non avere un passaggio di build, in cambio di componenti che qui sono una trentina in tutto.</span>
+        <span class="p no">~140 kB · no</span>
+      </div>
+    </div>
+
+    <div class="avvertenza">
+      <h3>La cosa che rovina questo stile</h3>
+      <p>Non è il codice, è la dose. Lo scuro lucido funziona sulla figurina e sulla rivelazione perché sono momenti che si guardano. Sulla lista iscritti — quella che si apre venti volte a settimana, di sera, con una mano sola — vetro e riflessi diventano solo un contrasto peggiore.</p>
+      <p>Per questo la terza schermata qui sopra è la più spoglia delle quattro, ed è voluto. Se una sola cosa sopravvive di queste note, che sia questa.</p>
+    </div>
+  </section>
+
+</div>

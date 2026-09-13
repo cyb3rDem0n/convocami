@@ -80,10 +80,17 @@ ottimistica.
 ./gradlew :core:teamdraw:test        # 72 test del motore
 ./gradlew assembleDebug              # APK di debug
 cd web && python3 -m http.server 8000
+
+# il database, in locale, per provarlo davvero
+createdb callmeup
+psql -d callmeup -f db/locale/00_finta_supabase.sql   # SOLO in locale
+for f in db/migrations/0*.sql; do psql -d callmeup -f "$f"; done
+psql -d callmeup -f db/locale/01_prova_regole.sql     # 33 prove
 ```
 
 Migrazioni in `db/migrations/`, da eseguire in ordine nel SQL Editor di
-Supabase.
+Supabase. `db/locale/` contiene il finto Supabase e le prove: serve solo in
+locale e su Supabase non va eseguito.
 
 ---
 
@@ -101,6 +108,14 @@ Supabase.
 - **`web/config.js` è versionato di proposito.** La chiave anon è pubblica per
   definizione; ignorarla faceva restare bianca la pagina su Vercel.
 - **Il progetto Supabase gratuito va in pausa dopo 7 giorni senza traffico.**
+- **Una regola nuova va anche provata**: se aggiungi un vincolo, aggiungi la
+  sua riga in `db/locale/01_prova_regole.sql` e rilancia. Le prove sono 33 e
+  passano tutte; una che fallisce vale più di qualunque rilettura del codice.
+- **Chi chiude una porta ne lasci aperta una di servizio**: il tetto alle
+  riserve serviva sia sulla INSERT sia sulla UPDATE, perché chi si era ritirato
+  rientrava da lì. Vale per ogni vincolo sulle iscrizioni.
+- **Squadra A = bianca, squadra B = nera.** Sono i colori delle pettorine, e i
+  messaggi d'errore del referto parlano così.
 
 ---
 

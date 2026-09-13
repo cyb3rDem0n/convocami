@@ -32,7 +32,11 @@ Due client sullo stesso database: web app (già viva) e app Android nativa
 | Schema database | `db/migrations/001` | Eseguito su Postgres 16: 15 tabelle, 4 viste, 33 policy, zero errori |
 | Trigger iscrizioni | `db/migrations/001` | Provati: 16 iscritti su 14 posti → 14 convocati, 2 riserve, 56 notifiche in coda, promozione riserve al ritiro |
 | Ingresso gruppo, realtime | `db/migrations/002` | Eseguito; funzioni provate una per una |
+| Email privata | `db/migrations/003` | Eseguito; il client legge `profili_pubblici` |
+| Regole della partita: tetto riserve, contatore ritiri, referto | `db/migrations/004` | 33 prove eseguite su Postgres 16 (`db/locale/01_prova_regole.sql`) |
+| Secondo ruolo dichiarabile | `db/migrations/005` + `core/teamdraw/` | Vincoli provati sul database e nel motore |
 | Web app: accesso, gruppo, partite, iscrizioni | `web/` | Sintassi e resa grafica verificate |
+| Identità visiva della web app | `web/style.css` | Schermate renderizzate e guardate (senza i font veri: vedi sotto) |
 
 ### Fatto ma NON verificato
 
@@ -42,11 +46,16 @@ impaginato sono controllati; il comportamento runtime no. Chi prende in mano il
 progetto **può compilare ed eseguire davvero**, e la prima cosa da fare è
 proprio quello.
 
+Nemmeno **i caratteri** sono stati visti: `fonts.googleapis.com` era chiuso, e
+le schermate renderizzate mostrano i ripieghi (Arial Black, Arial Narrow).
+Colori, spaziature e impaginato sono quelli buoni; Archivo Black e Barlow
+vanno guardati al primo avvio con la rete aperta.
+
 ### Non fatto
 
-App Android oltre il guscio; quota da mostrare; contatori presenze e ritiri;
-voto e statistiche lato client; riepilogo partita; classifiche; zone; notifiche
-push ed email.
+App Android oltre il guscio; il client che *mostra* quota, presenze e ritiri —
+il database ormai li tiene, ma nessuna schermata li legge; voto e statistiche
+lato client; riepilogo partita; classifiche; zone; notifiche push ed email.
 
 ---
 
@@ -310,16 +319,29 @@ Ordinato per dipendenze. Ogni voce ha il criterio per dirla finita.
 
 ### Blocco B — completare il giro della partita
 
-3. **Tetto di due riserve** in `iscriviti`, con messaggio chiaro al terzo.
-4. **Quota**: mostrare `matches.quota_eur` nella scheda partita e nella
-   conferma di iscrizione. Nient'altro — nessuna tabella di saldi, nessun
-   riferimento per pagare.
+**Il lato database di questo blocco è fatto e provato** (004 e 005). Quel che
+resta è farlo vedere: le regole esistono, ma nessuna schermata le legge.
+
+3. ~~Tetto di due riserve.~~ **Fatto** in `004`: vale sia per chi si iscrive
+   sia per chi rientra dopo essersi ritirato, e regge anche a una insert
+   diretta su PostgREST. Il numero è `matches.max_riserve`, non una costante.
+   *Da fare nel client:* usare `posti_liberi(partita)` per scrivere «2 posti,
+   poi lista d'attesa» **prima** che qualcuno prema il pulsante, e mostrare il
+   messaggio del database quando la lista è piena.
+4. ~~Quota, lato dati.~~ Il vincolo c'è (`quota_eur >= 0`), il numero pure.
+   *Da fare:* mostrarlo nella scheda partita e nella conferma di iscrizione.
+   Nient'altro — nessuna tabella di saldi, nessun riferimento per pagare.
    *Finito quando:* a iscrizioni chiuse ogni convocato vede quanto costa.
-5. **Contatori presenze e ritiri**: due colonne su `player_ratings`, aggiornate
-   da trigger su `match_signups` e alla chiusura dell'evento.
+5. ~~Contatori presenze e ritiri.~~ **Fatto** in `004`: vista
+   `contatori_giocatore`. Le presenze si contano dalle iscrizioni, i ritiri
+   stanno in `group_members.ritiri`. Si conta solo chi molla un posto da
+   convocato, e una volta sola per partita.
    *Finito quando:* il profilo mostra «N presenze, M ritiri», sempre in coppia.
-6. **Due ruoli dichiarabili** al posto di uno: `player_roles.profilo_iniziale`
-   diventa una coppia.
+6. ~~Due ruoli dichiarabili.~~ **Fatto** in `005` e nel motore:
+   `dichiara_ruoli(gruppo, principale, secondario)`, con POR escluso da
+   entrambe le caselle.
+   *Da fare nel client:* le due tendine nel profilo, e l'etichetta doppia
+   «Attaccante o centrocampista · di partenza» nell'elenco dei convocati.
 
 ### Blocco C — squadre
 
@@ -336,7 +358,13 @@ Ordinato per dipendenze. Ogni voce ha il criterio per dirla finita.
 9. **Notifica a 90 minuti**: riga in `notifications_outbox` con `invia_dopo`, e
    una funzione schedulata che svuota la coda.
 10. **Schermata voto**: quattro nomine, claim gol e assist, extra facoltativi.
-11. **Risultato e arbitraggio dei claim**, con il vincolo del punto 4.7.
+11. ~~Arbitraggio dei claim.~~ **Fatto** in `004`: `chiudi_referto(partita,
+    gol_bianca, gol_nera)` rifiuta il referto se i gol dichiarati non fanno il
+    risultato, autogol compresi, e a referto chiuso i gol si congelano;
+    `riapri_referto` serve a correggere. Squadra A = bianca, B = nera.
+    *Da fare nel client:* la schermata dove l'organizzatore scrive il
+    risultato, e il messaggio del database mostrato com'è quando i conti non
+    tornano — dice già chi dichiara quanto.
 12. **Etichette**, **riepilogo**, **classifiche**.
 
 ### Blocco E — Android e pubblicazione
@@ -378,7 +406,20 @@ cd web && python3 -m http.server 8000
 # database: su Supabase, SQL Editor, in ordine
 # db/migrations/001_schema.sql
 # db/migrations/002_ingresso_e_realtime.sql
+# db/migrations/003_email_privata.sql
+# db/migrations/004_regole_di_partita.sql
+# db/migrations/005_secondo_ruolo.sql
+
+# ... oppure in locale, su un Postgres qualunque, per provare davvero:
+createdb callmeup
+psql -d callmeup -f db/locale/00_finta_supabase.sql   # SOLO in locale
+for f in db/migrations/0*.sql; do psql -d callmeup -f "$f"; done
+psql -d callmeup -f db/locale/01_prova_regole.sql     # 33 prove
 ```
+
+`db/locale/00_finta_supabase.sql` crea le tre cose che su Supabase ci sono già
+— lo schema `auth`, `auth.uid()`, i ruoli `anon` e `authenticated` — e senza le
+quali `001` fallisce alla prima foreign key. Su Supabase non va eseguito mai.
 
 Documenti: [`impianto-tecnico.md`](impianto-tecnico.md) per il perché delle
 scelte, [`primo-avvio.md`](primo-avvio.md) per la configurazione,

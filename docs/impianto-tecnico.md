@@ -293,6 +293,29 @@ all'app significa accettare che prima o poi si presentino in quindici.
 
 Un quarto trigger riserva il flag `portiere` a chi organizza.
 
+La migrazione `004` aggiunge le regole della serata, e sono nel database per lo
+stesso motivo: un controllo che vive nella pagina si aggira con una chiamata
+diretta a PostgREST.
+
+**La lista d'attesa si ferma a due**, e il muro sta su due porte — la INSERT di
+chi si iscrive e la UPDATE di chi si era ritirato e rientra. Chiuderne una sola
+sembra sufficiente finché non arriva il primo ripensamento.
+
+**Il ritiro si conta ma non si paga.** Solo chi molla un posto da convocato:
+una riserva che si sfila non lascia nessuno a piedi. E una volta per partita,
+non una per ripensamento — da qui la colonna `ritiro_contato`. Le presenze
+invece non hanno un contatore: sono già scritte nelle iscrizioni, e un
+contatore che duplica un dato prima o poi diverge da quel dato.
+
+**I gol dichiarati devono fare il risultato.** È una funzione e non un `check`
+perché guarda tre tabelle insieme, e perché deve valere alla chiusura: durante
+la serata il conto è per forza sbagliato, il primo che dichiara un gol lo
+dichiara quando il risultato ancora non c'è. L'autogol conta per l'altra
+squadra — l'unico punto in cui il conteggio non è «somma i gol dei miei» — e a
+referto chiuso i gol si congelano, altrimenti il vincolo durerebbe il tempo di
+una chiamata in più. Riaprire si può: senza, il primo errore è per sempre e la
+gente impara a non chiudere niente.
+
 ---
 
 ## Il flusso
@@ -314,9 +337,14 @@ Un quarto trigger riserva il flag `portiere` a chi organizza.
 
 ## Verifica
 
-72 test in `TeamDrawTest`, `VotazioneTest`, `ProfiloDiPartenzaTest` e
-`PortiereTest`, più il banco di prova `Simulazione` per le misure su stagioni
-intere.
+72 test in `TeamDrawTest`, `VotazioneTest`, `ProfiloDiPartenzaTest`,
+`DueRuoliDiPartenzaTest` e `PortiereTest`, più il banco di prova `Simulazione`
+per le misure su stagioni intere.
+
+Sul database, 33 prove in `db/locale/01_prova_regole.sql`: non test unitari, ma
+la serata tipo fatta succedere davvero su un Postgres vero — venti iscritti su
+quattordici posti, uno che molla, uno che ci ripensa, e un referto in cui i
+conti non tornano.
 
 I test che contano di più sono quelli che presidiano i difetti trovati in
 simulazione, perché sono difetti che non fanno fallire niente: producono squadre

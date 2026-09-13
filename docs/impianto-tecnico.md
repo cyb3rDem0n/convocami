@@ -7,7 +7,7 @@ ruoli dedotti e del voto per fasi di gioco.
 
 | Ambito | Scelta | Perché |
 |---|---|---|
-| Nome | **Convocami** sullo schermo, `callmeup` nel codice | La parola *è* la funzione, e gli utenti sono italiani: un gioco di parole che va spiegato non sta funzionando. Il package `it.cyb3rdm0n.callmeup` resta perché dopo la pubblicazione non si cambia più, e un nome neutro viaggia meglio se l'app cambia mani. Scartato *CallMeApp*: «call me up» in inglese vuol dire *telefonami*, e attaccato sembrava un'app per chiamate |
+| Nome | **Convocami**, tranne il package `it.cyb3rdm0n.callmeup` | La parola *è* la funzione, e gli utenti sono italiani: un gioco di parole che va spiegato non sta funzionando. Il package resta perché dopo la pubblicazione non si cambia più — è l'unico pezzo davvero irreversibile — e perché un identificatore neutro viaggia meglio se l'app cambia mani. Scartato *CallMeApp*: «call me up» in inglese vuol dire *telefonami*, e attaccato sembrava un'app per chiamate |
 | Client | Android nativo, Kotlin + Jetpack Compose | L'APK firmato è l'oggetto che si può cedere o licenziare |
 | Backend | Supabase, piano gratuito | Postgres, auth, storage e realtime pronti, a costo zero |
 | Sorteggio | Modulo Kotlin puro, sul dispositivo | Testabile con una JVM, portabile, nessun costo di server |

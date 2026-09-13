@@ -184,7 +184,7 @@ la segretezza della chiave. La `service_role` invece non deve mai finire lì.
 Gratuito, e si aggiorna da solo a ogni push.
 
 1. Vai su vercel.com e accedi con GitHub.
-2. *Add New → Project*, scegli il repo `CallMeUp`.
+2. *Add New → Project*, scegli il repo `Convocami`.
 3. **Root Directory**: `web` — è il passaggio che si dimentica sempre.
 4. **Framework Preset**: *Other*. Lascia vuoti i comandi di build: non ce ne sono.
 5. Deploy.

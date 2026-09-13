@@ -83,7 +83,7 @@ seconda finestra in incognito e registrati con un'altra email.
 Solo quando in locale funziona.
 
 1. Crea il repo su GitHub e fai push.
-2. Su vercel.com, accedi con GitHub, *Add New → Project*, scegli `CallMeUp`.
+2. Su vercel.com, accedi con GitHub, *Add New → Project*, scegli `Convocami`.
 3. **Root Directory**: `web` — è il passaggio che si dimentica sempre.
 4. **Framework Preset**: *Other*. Nessun comando di build: non ce n'è.
 5. Deploy.

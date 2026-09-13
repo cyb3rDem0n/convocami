@@ -6,10 +6,11 @@ arriva la conferma con data, ora e campo. Le squadre le sorteggia l'app:
 equilibrate, ma diverse ogni volta.
 
 L'app si chiama **Convocami**: i suoi utenti sono italiani, e la parola *è* la
-funzione. Il repo e il package restano `it.cyb3rdm0n.callmeup` — *call-up*, la
-convocazione — per due motivi: l'identificatore Android non si cambia più dopo
-la pubblicazione, e un nome neutro viaggia meglio se un domani l'app cambia
-mani. Sul telefono e sullo store si legge solo Convocami.
+funzione. Una cosa sola conserva il nome vecchio, il package Android
+`it.cyb3rdm0n.callmeup` — *call-up*, la convocazione — e non per affezione:
+dopo la pubblicazione sul Play Store quell'identificatore non si cambia più.
+Vale anche per i package Kotlin, che da lui discendono. Tutto il resto —
+cartella, repo, schermo, store — dice Convocami.
 
 ## Stato
 

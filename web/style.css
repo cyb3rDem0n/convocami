@@ -1,46 +1,40 @@
-/* CallMeUp — stessa identita visiva del documento di progetto.
-   Verde campo desaturato, neutri con una lieve deriva verso il verde. */
+/* CallMeUp — l'identita visiva di design/tokens.json, la stessa di Android.
+   Le classi sono quelle che app.js gia scrive: qui cambia solo come si vedono.
+
+   NIENTE media query sul tema. Un'app che vive di schede lucide e numeri
+   grandi su fondo scuro non ha una versione chiara che regga, e averne una a
+   meta sarebbe peggio che non averla: il mondo e dichiarato, non ereditato
+   dal sistema operativo di chi guarda. Stessa scelta di Theme.kt. */
 
 :root {
-  --ground:    #F1F4F0;
-  --surface:   #FFFFFF;
-  --surface-2: #E7ECE6;
-  --line:      #CCD5CA;
-  --line-soft: #DFE6DD;
-  --ink:       #151B17;
-  --ink-2:     #45514A;
-  --ink-3:     #6B776F;
+  --notte:      #070B08;   /* sfondo: nero con deriva verde, non neutro */
+  --erba:       #0E1712;   /* superfici */
+  --erba-2:     #14201A;   /* superfici sollevate, campi di input */
+  --linea:      #1E2C24;   /* bordi */
+  --linea-tenue:#16221C;   /* separatori dentro le liste */
 
-  --pitch:     #2F6B47;
-  --pitch-2:   #3E8659;
-  --chalk:     #F4F8F3;
-  --warn:      #B3701C;
-  --crit:      #A83A2D;
+  --verde:      #2BE07A;
+  --verde-cupo: #1A8F4F;
+  --oro:        #E9C46A;   /* SOLO figurina ed etichette guadagnate */
+  --oro-cupo:   #A98431;
 
-  --head: "Archivo", "Helvetica Neue", Arial, sans-serif;
-  --body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --gesso:      #EDF2EC;
+  --fumo:       #8FA396;
+  --fumo-2:     #5C6D62;
 
-  --shadow: 0 1px 2px rgba(21,27,23,.06), 0 8px 24px -12px rgba(21,27,23,.18);
-}
+  --bianca:     #F1F4F0;
+  --nera:       #10150F;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --ground:    #10140F;
-    --surface:   #171D18;
-    --surface-2: #1F2720;
-    --line:      #2E3A30;
-    --line-soft: #232C24;
-    --ink:       #E8EFE7;
-    --ink-2:     #AAB8AC;
-    --ink-3:     #7E8C80;
-    --pitch:     #64B383;
-    --pitch-2:   #4E9A6C;
-    --chalk:     #10140F;
-    --warn:      #D79A4A;
-    --crit:      #D9705F;
-    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 28px -14px rgba(0,0,0,.7);
-  }
+  --rosso:      #D9705F;   /* semantico, NON e l'accento */
+  --ambra:      #D79A4A;
+
+  --display: "Archivo Black", "Arial Black", sans-serif;
+  --cond:    "Barlow Condensed", "Arial Narrow", sans-serif;
+  --ui:      "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --r-scheda: 12px;
+  --r-bottone: 12px;
+  --r-pillola: 20px;
 }
 
 * { box-sizing: border-box; }
@@ -52,11 +46,16 @@
 
 body {
   margin: 0;
-  background: var(--ground);
-  color: var(--ink);
-  font-family: var(--body);
+  /* L'alone in alto e il campo illuminato dai fari: da profondita alla
+     pagina senza mettere una fotografia dietro al testo. */
+  background:
+    radial-gradient(120% 80% at 50% -10%, #12201A 0%, transparent 60%),
+    var(--notte);
+  background-attachment: fixed;
+  color: var(--gesso);
+  font-family: var(--ui);
   font-size: 16px;
-  line-height: 1.55;
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -65,13 +64,14 @@ body {
 header#barra {
   display: flex; align-items: center; justify-content: space-between;
   gap: 16px; padding: 12px 20px;
-  border-bottom: 1px solid var(--line);
-  background: var(--surface);
+  border-bottom: 1px solid var(--linea);
+  background: rgba(7, 11, 8, .82);
+  backdrop-filter: blur(10px);
   position: sticky; top: 0; z-index: 5;
 }
 .logo {
-  font-family: "Archivo Black", var(--head); font-size: 19px;
-  letter-spacing: -.02em; background: none; border: 0; color: var(--ink);
+  font-family: var(--display); font-size: 19px; letter-spacing: -.02em;
+  text-transform: uppercase; background: none; border: 0; color: var(--gesso);
   padding: 0; cursor: pointer;
 }
 header nav { display: flex; gap: 14px; }
@@ -82,124 +82,196 @@ main {
   max-width: 620px; margin: 0 auto;
   padding-inline: 20px; padding-block: 28px 64px;
 }
-.caricamento { color: var(--ink-3); padding-block: 40px; text-align: center; }
+.caricamento {
+  color: var(--fumo-2); padding-block: 40px; text-align: center;
+  font-family: var(--cond); letter-spacing: .16em; text-transform: uppercase;
+}
 
 h1 {
-  font-family: "Archivo Black", var(--head);
-  font-size: clamp(30px, 8vw, 40px); line-height: 1; letter-spacing: -.025em;
-  margin: 0 0 10px; text-wrap: balance;
+  font-family: var(--display);
+  font-size: clamp(32px, 9vw, 46px); line-height: .92; letter-spacing: -.025em;
+  margin: 0 0 12px; text-wrap: balance; text-transform: uppercase;
+  background: linear-gradient(180deg, var(--gesso) 32%, #9FB5A6 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
 }
 h2 {
-  font-family: var(--head); font-weight: 700; font-size: 21px;
-  letter-spacing: -.015em; margin: 32px 0 10px;
+  font-family: var(--display); font-size: 19px;
+  letter-spacing: -.015em; margin: 32px 0 10px; text-transform: uppercase;
 }
-h3 { font-family: var(--head); font-weight: 600; font-size: 15px; margin: 24px 0 8px; }
+/* h3 fa da occhiello: e l'etichetta da tabellone, non un titolo piu piccolo. */
+h3 {
+  font-family: var(--cond); font-weight: 700; font-size: 12px;
+  letter-spacing: .18em; text-transform: uppercase; color: var(--verde);
+  margin: 26px 0 8px;
+}
 p { margin: 12px 0; }
-.sotto { color: var(--ink-2); margin-top: 0; }
-.mini { font-size: 13.5px; color: var(--ink-3); }
+.sotto { color: var(--fumo); margin-top: 0; }
+.mini { font-size: 13.5px; color: var(--fumo-2); }
 
 /* ---------- controlli ---------- */
 
 label {
-  display: block; font-family: var(--mono); font-size: 11px;
-  letter-spacing: .1em; text-transform: uppercase;
-  color: var(--ink-3); margin: 16px 0 6px;
+  display: block; font-family: var(--cond); font-size: 12px; font-weight: 600;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: var(--fumo-2); margin: 18px 0 6px;
 }
 input, select, textarea {
-  width: 100%; font: inherit; color: var(--ink);
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: 9px; padding: 11px 13px;
+  width: 100%; font: inherit; color: var(--gesso);
+  background: var(--erba-2); border: 1px solid var(--linea);
+  border-radius: 10px; padding: 12px 13px;
 }
+input::placeholder { color: var(--fumo-2); }
 input:focus-visible, select:focus-visible, button:focus-visible {
-  outline: 2px solid var(--pitch); outline-offset: 2px;
+  outline: 2px solid var(--verde); outline-offset: 2px;
 }
 
 button {
-  font: inherit; font-weight: 600; cursor: pointer;
-  border-radius: 9px; border: 1px solid transparent;
-  padding: 11px 18px; transition: opacity .12s;
+  font: inherit; cursor: pointer;
+  border-radius: var(--r-bottone); border: 1px solid transparent;
+  padding: 13px 18px; transition: filter .12s, opacity .12s;
 }
-button:disabled { opacity: .5; cursor: default; }
-button.primario { background: var(--pitch); color: var(--chalk); width: 100%; }
-button.secondario { background: var(--surface); color: var(--ink); border-color: var(--line); width: 100%; }
-button.pericolo { background: var(--surface); color: var(--crit); border-color: var(--crit); width: 100%; }
-button.testo {
-  background: none; border: 0; color: var(--ink-2);
-  font-weight: 500; padding: 4px 2px; font-size: 14.5px;
-}
-button.testo:hover { color: var(--ink); }
+button:disabled { opacity: .45; cursor: default; }
 
-.azioni { display: grid; gap: 10px; margin-top: 20px; }
+/* I bottoni pieni parlano in Archivo Black maiuscolo: sono i momenti in cui
+   l'app alza la voce — mi iscrivo, creo il gruppo, faccio le squadre. */
+button.primario {
+  width: 100%; border: 0;
+  font-family: var(--display); font-size: 14px; letter-spacing: .02em;
+  text-transform: uppercase;
+  background: linear-gradient(180deg, var(--verde), var(--verde-cupo));
+  color: #04210F;
+  box-shadow: 0 8px 22px -10px var(--verde-cupo);
+}
+button.primario:hover:not(:disabled) { filter: brightness(1.06); }
+button.secondario {
+  width: 100%; background: transparent; color: var(--gesso);
+  border-color: var(--linea);
+  font-family: var(--cond); font-weight: 700; font-size: 15px;
+  letter-spacing: .12em; text-transform: uppercase;
+}
+button.secondario:hover { border-color: #2A3C32; }
+button.pericolo {
+  width: 100%; background: transparent; color: var(--rosso);
+  border-color: color-mix(in srgb, var(--rosso) 45%, transparent);
+  font-family: var(--cond); font-weight: 700; font-size: 15px;
+  letter-spacing: .12em; text-transform: uppercase;
+}
+button.testo {
+  background: none; border: 0; color: var(--fumo);
+  font-family: var(--cond); font-weight: 600; font-size: 14px;
+  letter-spacing: .12em; text-transform: uppercase;
+  padding: 4px 2px;
+}
+button.testo:hover { color: var(--gesso); }
+
+.azioni { display: grid; gap: 10px; margin-top: 22px; }
 
 /* ---------- schede ---------- */
 
 .scheda {
   display: block; width: 100%; text-align: left;
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: 12px; padding: 16px 18px; margin-bottom: 10px;
-  box-shadow: var(--shadow); font: inherit; color: var(--ink);
+  background: linear-gradient(168deg, var(--erba-2), var(--erba));
+  border: 1px solid var(--linea);
+  border-radius: var(--r-scheda); padding: 16px 18px; margin-bottom: 10px;
+  box-shadow: 0 18px 40px -28px #000;
+  font: inherit; color: var(--gesso); cursor: pointer;
+  transition: border-color .12s, transform .12s;
 }
+.scheda:hover { border-color: #2A3C32; transform: translateY(-1px); }
 .scheda .quando {
-  font-family: var(--mono); font-size: 11.5px; letter-spacing: .06em;
-  text-transform: uppercase; color: var(--pitch); display: block;
+  font-family: var(--cond); font-size: 12px; font-weight: 700;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--verde);
+  display: block;
 }
-.scheda .dove { font-family: var(--head); font-weight: 600; font-size: 17px; margin: 4px 0 2px; }
+.scheda .dove {
+  font-family: var(--display); font-size: 18px; letter-spacing: -.02em;
+  text-transform: uppercase; margin: 6px 0 2px;
+}
 .scheda .riga { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 
 .pannello {
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: 12px; padding: 18px; margin: 18px 0;
+  background: var(--erba); border: 1px solid var(--linea);
+  border-radius: var(--r-scheda); padding: 18px; margin: 18px 0;
 }
-.piatto { background: var(--surface-2); border-radius: 10px; padding: 14px 16px; margin: 16px 0; }
+.piatto {
+  background: var(--erba-2); border: 1px solid var(--linea);
+  border-radius: 10px; padding: 14px 16px; margin: 16px 0;
+}
 .piatto > :first-child { margin-top: 0; }
 .piatto > :last-child { margin-bottom: 0; }
 
 /* ---------- contatore iscrizioni ---------- */
 
-.contatore { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 14px; }
+.contatore { display: flex; align-items: baseline; gap: 10px; margin: 8px 0 10px; }
 .contatore b {
-  font-family: var(--head); font-weight: 700; font-size: 34px;
-  line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+  font-family: var(--display); font-size: 40px;
+  line-height: 1; letter-spacing: -.03em; color: var(--verde);
+  font-variant-numeric: tabular-nums;
 }
-.contatore span { color: var(--ink-3); font-size: 14px; }
+.contatore span {
+  font-family: var(--cond); font-size: 13px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--fumo);
+}
 .barra-posti {
-  height: 8px; border-radius: 5px; background: var(--line-soft);
+  height: 6px; border-radius: 4px; background: #1A2620;
   overflow: hidden; margin-bottom: 18px;
 }
-.barra-posti i { display: block; height: 100%; background: var(--pitch); border-radius: 5px; transition: width .3s; }
-.barra-posti.pieno i { background: var(--pitch-2); }
+.barra-posti i {
+  display: block; height: 100%; border-radius: 4px;
+  background: linear-gradient(90deg, var(--verde-cupo), var(--verde));
+  transition: width .3s;
+}
+/* A lista piena l'accento si spegne: il verde vuol dire "c'e ancora posto". */
+.barra-posti.pieno i { background: linear-gradient(90deg, #2A3C32, var(--fumo-2)); }
 
 /* ---------- elenco persone ---------- */
 
 .persone { list-style: none; padding: 0; margin: 10px 0 0; }
 .persone li {
   display: flex; align-items: center; gap: 12px;
-  padding: 9px 0; border-bottom: 1px solid var(--line-soft);
+  padding: 9px 0; border-bottom: 1px solid var(--linea-tenue);
 }
 .persone li:last-child { border-bottom: 0; }
 .numero {
-  font-family: var(--mono); font-size: 12px; color: var(--ink-3);
-  width: 22px; flex: none; text-align: right; font-variant-numeric: tabular-nums;
+  width: 26px; height: 26px; flex: none; border-radius: 50%;
+  display: grid; place-items: center;
+  background: linear-gradient(150deg, #22332A, #131D18);
+  border: 1px solid #253329;
+  font-family: var(--display); font-size: 10px; color: var(--fumo);
+  font-variant-numeric: tabular-nums;
 }
 .chi { flex: 1; min-width: 0; }
-.chi .nome { font-weight: 500; }
-.chi .etichetta { font-family: var(--mono); font-size: 11px; color: var(--ink-3); display: block; }
-.io { color: var(--pitch); }
+/* L'etichetta sta su una riga sola e semmai si tronca: "Attaccante o
+   centrocampista · di partenza" e lunga, e su tre righe sfonda l'elenco
+   spostando nome e pillola. In un elenco di quattordici persone conta la
+   riga, non l'etichetta per intero — che comunque sta nel profilo. */
+.chi .etichetta {
+  font-family: var(--cond); font-size: 11px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--fumo-2);
+  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.chi .nome {
+  font-weight: 600; font-size: 14.5px;
+  display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.io { color: var(--verde); }
 
 .pill {
-  font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em;
-  text-transform: uppercase; border: 1px solid var(--line);
-  border-radius: 20px; padding: 2px 9px; color: var(--ink-3); white-space: nowrap;
+  font-family: var(--cond); font-size: 11px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase;
+  border: 1px solid var(--linea); border-radius: var(--r-pillola);
+  padding: 3px 10px; color: var(--fumo-2); white-space: nowrap;
 }
-.pill.ok { color: var(--pitch); border-color: currentColor; }
-.pill.attesa { color: var(--warn); border-color: currentColor; }
+.pill.ok { color: var(--verde); border-color: color-mix(in srgb, var(--verde) 40%, transparent); }
+.pill.attesa { color: var(--ambra); border-color: color-mix(in srgb, var(--ambra) 40%, transparent); }
 
 /* ---------- codice invito ---------- */
 
 .codice {
-  font-family: var(--mono); font-size: 22px; letter-spacing: .18em;
-  background: var(--surface-2); border-radius: 10px;
-  padding: 14px; text-align: center; margin: 10px 0;
+  font-family: var(--display); font-size: 26px; letter-spacing: .22em;
+  background: var(--erba-2); border: 1px solid var(--linea);
+  border-radius: 10px; color: var(--verde);
+  padding: 16px 10px; text-align: center; margin: 10px 0;
   user-select: all;
 }
 
@@ -208,12 +280,13 @@ button.testo:hover { color: var(--ink); }
 #avviso {
   position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%);
   max-width: min(92vw, 460px); z-index: 20;
-  background: var(--ink); color: var(--ground);
+  background: var(--erba-2); color: var(--gesso);
+  border: 1px solid var(--linea); border-left: 3px solid var(--verde);
   padding: 12px 18px; border-radius: 10px; font-size: 14.5px;
-  box-shadow: 0 10px 30px -10px rgba(0,0,0,.5);
+  box-shadow: 0 20px 40px -20px #000;
 }
-#avviso.male { background: var(--crit); color: #fff; }
+#avviso.male { border-left-color: var(--rosso); color: var(--gesso); }
 
 @media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; }
+  *, .scheda:hover { transition: none !important; transform: none !important; }
 }

@@ -62,7 +62,7 @@ suo e rende il build identico sul tuo portatile e sulla CI.
 ### Build di sviluppo
 
 ```bash
-./gradlew :core:teamdraw:test     # i 63 test del motore di sorteggio
+./gradlew :core:teamdraw:test     # i 72 test del motore di sorteggio
 ./gradlew assembleDebug           # l'APK
 ```
 

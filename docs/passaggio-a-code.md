@@ -27,7 +27,7 @@ Due client sullo stesso database: web app (già viva) e app Android nativa
 
 | Cosa | Dove | Come è stato verificato |
 |---|---|---|
-| Motore di sorteggio squadre | `core/teamdraw/` | 63 test, compilati ed eseguiti |
+| Motore di sorteggio squadre | `core/teamdraw/` | 72 test, compilati ed eseguiti |
 | Propensione ai ruoli, voto per fasi | `core/teamdraw/` | Convergenza simulata su 40 partite |
 | Schema database | `db/migrations/001` | Eseguito su Postgres 16: 15 tabelle, 4 viste, 33 policy, zero errori |
 | Trigger iscrizioni | `db/migrations/001` | Provati: 16 iscritti su 14 posti → 14 convocati, 2 riserve, 56 notifiche in coda, promozione riserve al ritiro |
@@ -369,7 +369,7 @@ Ordinato per dipendenze. Ogni voce ha il criterio per dirla finita.
 
 ```bash
 # motore di sorteggio
-./gradlew :core:teamdraw:test        # 63 test
+./gradlew :core:teamdraw:test        # 72 test
 ./gradlew assembleDebug              # APK di debug
 
 # web app

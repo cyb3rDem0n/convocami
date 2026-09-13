@@ -15,7 +15,7 @@ voce, caso d'uso completo e lavoro diviso in blocchi, ciascuno con il criterio
 per dirlo finito. Le regole che non devono mai uscire dal contesto stanno in
 [CLAUDE.md](CLAUDE.md).
 
-Il motore di sorteggio è scritto, compilato e coperto da 63 test eseguiti. Lo
+Il motore di sorteggio è scritto, compilato e coperto da 72 test eseguiti. Lo
 schema del database è stato eseguito su un Postgres vero e i trigger sono stati
 provati da capo a fondo. La web app è completa nelle schermate di accesso,
 gruppo, partita e iscrizione, **ma non è mai stata eseguita contro un database
@@ -63,7 +63,7 @@ nuova implementazione, non riscrivere l'app.
 ## Partire
 
 ```bash
-./gradlew :core:teamdraw:test   # 63 test del motore
+./gradlew :core:teamdraw:test   # 72 test del motore
 ./gradlew assembleDebug         # APK installabile
 ```
 
@@ -110,9 +110,12 @@ tutti attaccanti — ma si deduce da come è andata in campo. Ogni giocatore ha 
 **confidenza** che cresce con le partite. Chi è nuovo ha confidenza zero e il
 ruolo non lo influenza affatto, così l'app non finge di sapere dove metterlo.
 
-Chi vuole può indicare un **profilo di partenza** all'iscrizione. Serve a non
-sorteggiare del tutto alla cieca la prima domenica, compare come *"Attaccante ·
-di partenza"*, e i fatti lo scavalcano in poche partite.
+Chi vuole può indicare un **profilo di partenza** all'iscrizione, e sono **due
+ruoli, non uno**: con una casella sola si dichiarano tutti attaccanti e non
+resta niente da usare, con due si dice di fatto dove *non* si gioca, che è
+l'informazione utile. Serve a non sorteggiare del tutto alla cieca la prima
+domenica, compare come *"Attaccante o centrocampista · di partenza"*, e i fatti
+lo scavalcano in poche partite — tutti e due.
 
 L'etichetta compare solo con abbastanza partite e un distacco netto. Altrimenti
 resta **Jolly**, che non è l'assenza di un dato ma un'etichetta positiva, e nel
@@ -178,7 +181,7 @@ I numeri qui sotto escono dal motore compilato, non da una stima.
 | Scarto di forza fra le squadre | 0,28% | 0,22% |
 | Formazioni distinte su 40 partite | 40/40 | 40/40 |
 | Violazioni del vincolo portiere | 0/40 | 0/40 |
-| Tempo per sorteggio | ~87 ms | ~109 ms |
+| Tempo per sorteggio | ~120 ms | ~140 ms |
 
 Partendo da **zero dati** sui ruoli di movimento, con i soli voti dei compagni:
 dopo 10 partite 18 giocatori su 20 hanno un'etichetta e sono tutte corrette;

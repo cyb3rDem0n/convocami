@@ -365,6 +365,71 @@ begin
     r.presenze = 0 and r.ritiri = 1, format('%s presenze, %s ritiri', r.presenze, r.ritiri));
 end $$;
 
+
+-- ---------------------------------------------------------------------------
+-- Prova 4 — i due ruoli dichiarabili (005)
+-- ---------------------------------------------------------------------------
+
+do $$ begin
+  perform accedi_come(dato('g7'));
+  perform dichiara_ruoli(dato('gruppo'), 'ATT', 'CEN');
+  perform annota('si dichiarano due ruoli, e pesano diversamente',
+    (select prop_att = 1.8 and prop_cen = 1.4 and prop_dif = 1.0
+     from player_roles where group_id = dato('gruppo') and profile_id = dato('g7')),
+    (select format('att %s, cen %s, dif %s', prop_att, prop_cen, prop_dif)
+     from player_roles where group_id = dato('gruppo') and profile_id = dato('g7')));
+end $$;
+
+do $$ begin
+  perform accedi_come(dato('g8'));
+  begin
+    perform dichiara_ruoli(dato('gruppo'), 'DIF', 'DIF');
+    perform annota('i due ruoli devono essere diversi', false, 'accettati uguali');
+  exception when others then
+    perform annota('i due ruoli devono essere diversi', true, sqlerrm);
+  end;
+
+  begin
+    perform dichiara_ruoli(dato('gruppo'), 'DIF', 'POR');
+    perform annota('il portiere non si sceglie da soli', false, 'accettato POR');
+  exception when others then
+    perform annota('il portiere non si sceglie da soli', true, sqlerrm);
+  end;
+end $$;
+
+-- Chi ha gia partite valutate puo cambiare quel che dichiara, ma le
+-- propensioni imparate dai voti non si riscrivono.
+do $$
+declare prima numeric;
+begin
+  update player_roles set partite_valutate = 6, prop_dif = 2.4
+   where group_id = dato('gruppo') and profile_id = dato('g9');
+  select prop_dif into prima from player_roles
+   where group_id = dato('gruppo') and profile_id = dato('g9');
+
+  perform accedi_come(dato('g9'));
+  perform dichiara_ruoli(dato('gruppo'), 'ATT');
+
+  perform annota('con partite alle spalle i voti battono la dichiarazione',
+    (select prop_dif = prima and profilo_iniziale = 'ATT'
+     from player_roles where group_id = dato('gruppo') and profile_id = dato('g9')),
+    (select format('dif %s, dichiarato %s', prop_dif, profilo_iniziale)
+     from player_roles where group_id = dato('gruppo') and profile_id = dato('g9')));
+end $$;
+
+do $$ begin
+  perform accedi_come(dato('g1'));
+  update player_roles set portiere = true
+   where group_id = dato('gruppo') and profile_id = dato('g10');
+  perform accedi_come(dato('g10'));
+  begin
+    perform dichiara_ruoli(dato('gruppo'), 'DIF', 'CEN');
+    perform annota('chi para non si dichiara ruoli di movimento', false, 'accettati');
+  exception when others then
+    perform annota('chi para non si dichiara ruoli di movimento', true, sqlerrm);
+  end;
+end $$;
+
 -- ---------------------------------------------------------------------------
 -- Esito
 -- ---------------------------------------------------------------------------

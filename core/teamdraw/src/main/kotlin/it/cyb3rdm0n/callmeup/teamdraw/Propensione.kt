@@ -24,6 +24,19 @@ data class Propensione(
     /** Dove ha detto di partire, se l'ha detto. Non e un verdetto. */
     val profiloIniziale: Ruolo? = null,
     /**
+     * Il secondo ruolo dichiarabile: "faccio l'attaccante, ma me la cavo a
+     * centrocampo".
+     *
+     * Ce ne sono due e non uno perche nel calcetto e la verita: quasi nessuno
+     * fa una cosa sola, e costringere a sceglierne una sola produce una
+     * dichiarazione falsa — di solito "attaccante". Due caselle chiedono a chi
+     * si iscrive di dire dove NON gioca, che e l'informazione utile.
+     *
+     * Pesa meno del primo e non compete con i fatti: quattro partite di voti lo
+     * scavalcano, come scavalcano il primo.
+     */
+    val profiloSecondario: Ruolo? = null,
+    /**
      * Il portiere non si deduce: si dichiara.
      *
      * I ruoli di movimento si mescolano e vanno dedotti dai fatti, ma fare il
@@ -42,6 +55,24 @@ data class Propensione(
         require(valori.values.all { it >= 0.0 }) { "Le propensioni non possono essere negative" }
         require(!portiere || profiloIniziale == null || profiloIniziale == Ruolo.POR) {
             "Un portiere non puo avere come profilo iniziale un ruolo di movimento"
+        }
+        require(profiloSecondario == null || profiloIniziale != null) {
+            "Il secondo ruolo ha senso solo dopo il primo"
+        }
+        // Il "== null" davanti non e ridondante: senza, chi non dichiara niente
+        // ha due caselle nulle, null e uguale a null, e il profilo piu comune di
+        // tutti — quello di chi si iscrive e basta — diventa illegale.
+        require(profiloSecondario == null || profiloSecondario != profiloIniziale) {
+            "I due ruoli dichiarati devono essere diversi"
+        }
+        // Il portiere si dichiara con il flag, non come ruolo di ripiego: se
+        // POR potesse comparire qui, chiunque potrebbe scavalcare il vincolo
+        // dichiarandosi portiere di scorta.
+        require(profiloSecondario != Ruolo.POR) {
+            "Il portiere si dichiara con il flag, non come secondo ruolo"
+        }
+        require(!portiere || profiloSecondario == null) {
+            "Un portiere non ha un secondo ruolo: se gioca in campo, lo sposta chi organizza"
         }
     }
 
@@ -89,7 +120,14 @@ data class Propensione(
             return if ((primo - secondo) / primo >= DISTACCO_MINIMO) diMovimento[0].key else null
         }
 
-    /** Quel che compare sotto il nome: "Difensore", "Attaccante · di partenza", "Jolly". */
+    /**
+     * Quel che compare sotto il nome: "Difensore", "Attaccante o centrocampista
+     * · di partenza", "Jolly".
+     *
+     * Finche parliamo di intenzioni si mostrano tutti e due i ruoli dichiarati,
+     * perche e cio che la persona ha detto. Quando arrivano i fatti resta un
+     * ruolo solo: a quel punto non e piu una dichiarazione, e un dato.
+     */
     val etichettaTesto: String
         get() {
             val r = etichetta
@@ -97,6 +135,8 @@ data class Propensione(
                 r == null && !confermataDaiFatti -> "Nuovo"
                 r == null -> "Jolly"
                 confermataDaiFatti -> nome(r)
+                profiloSecondario != null ->
+                    "${nome(r)} o ${nome(profiloSecondario).lowercase()} · di partenza"
                 else -> "${nome(r)} · di partenza"
             }
         }
@@ -180,18 +220,46 @@ data class Propensione(
         /** Chi si iscrive e non dice niente. Nessun ruolo, nessun pregiudizio. */
         val NUOVA = Propensione()
 
+        /** Quanto pesa il ruolo dichiarato per primo. */
+        private const val PESO_PRIMO = 1.8
+
         /**
-         * Il profilo di partenza scelto all'iscrizione: "parto attaccante".
+         * Quanto pesa il secondo. Sta in mezzo fra il primo e il resto del
+         * campo: deve inclinare il sorteggio, non fare concorrenza al primo.
+         */
+        private const val PESO_SECONDO = 1.4
+
+        /**
+         * Il profilo di partenza scelto all'iscrizione: "parto attaccante, e
+         * all'occorrenza faccio il centrocampista".
          *
          * Orienta il primo sorteggio e da alla persona un'etichetta da mostrare
          * subito, ma pesa poco e si lascia smentire in poche partite.
+         *
+         * Il secondo ruolo e facoltativo. Chi lo indica dice in sostanza dove
+         * NON gioca, e quella e l'informazione che serve davvero al sorteggio:
+         * con un ruolo solo, di fronte a quattordici persone che si sono tutte
+         * dichiarate attaccanti, non resta niente da usare.
          */
-        fun diPartenza(ruolo: Ruolo): Propensione =
-            if (ruolo == Ruolo.POR) portiere() else Propensione(
-                valori = Ruolo.entries.associateWith { if (it == ruolo) 1.8 else 1.0 },
+        fun diPartenza(ruolo: Ruolo, secondo: Ruolo? = null): Propensione {
+            if (ruolo == Ruolo.POR) return portiere()
+            require(secondo != Ruolo.POR) {
+                "Il portiere si dichiara con il flag, non come secondo ruolo"
+            }
+            require(secondo != ruolo) { "I due ruoli dichiarati devono essere diversi" }
+            return Propensione(
+                valori = Ruolo.entries.associateWith {
+                    when (it) {
+                        ruolo -> PESO_PRIMO
+                        secondo -> PESO_SECONDO
+                        else -> 1.0
+                    }
+                },
                 partite = 0,
                 profiloIniziale = ruolo,
+                profiloSecondario = secondo,
             )
+        }
 
         /**
          * Chi para. Si dichiara iscrivendosi o lo imposta l'organizzatore, e

@@ -63,7 +63,7 @@ Questo progetto ha una regola che vale più di tutte le altre: **si dice
 verificato solo ciò che è stato eseguito.**
 
 Lo schema del database è stato eseguito su un Postgres vero prima di essere
-dichiarato buono, e sono usciti due difetti. Il motore di sorteggio ha 63 test
+dichiarato buono, e sono usciti due difetti. Il motore di sorteggio ha 72 test
 compilati ed eseguiti, e la simulazione ha trovato quattro difetti che non
 facevano fallire niente — producevano squadre plausibili e sbagliate. La web app
 è l'unica parte mai eseguita contro un database vero, ed è scritto a chiare
@@ -77,7 +77,7 @@ ottimistica.
 ## Comandi
 
 ```bash
-./gradlew :core:teamdraw:test        # 63 test del motore
+./gradlew :core:teamdraw:test        # 72 test del motore
 ./gradlew assembleDebug              # APK di debug
 cd web && python3 -m http.server 8000
 ```

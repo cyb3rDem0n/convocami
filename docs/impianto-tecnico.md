@@ -314,7 +314,7 @@ Un quarto trigger riserva il flag `portiere` a chi organizza.
 
 ## Verifica
 
-63 test in `TeamDrawTest`, `VotazioneTest`, `ProfiloDiPartenzaTest` e
+72 test in `TeamDrawTest`, `VotazioneTest`, `ProfiloDiPartenzaTest` e
 `PortiereTest`, più il banco di prova `Simulazione` per le misure su stagioni
 intere.
 
@@ -328,7 +328,7 @@ plausibili e sbagliate.
 | Scarto peggiore | 1,12% | 0,99% |
 | Formazioni distinte su 40 | 40/40 | 40/40 |
 | Violazioni vincolo portiere | 0/40 | 0/40 |
-| Tempo per sorteggio (JVM) | 87 ms | 109 ms |
+| Tempo per sorteggio (JVM) | ~120 ms | ~140 ms |
 
 **Convergenza da zero dati** — venti persone, nessuna informazione sui ruoli di
 movimento, solo le nomine dei compagni con il rumore che hanno nella realtà:

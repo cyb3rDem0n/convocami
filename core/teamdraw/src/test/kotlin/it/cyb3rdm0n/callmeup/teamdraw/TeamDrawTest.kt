@@ -840,3 +840,88 @@ class PortiereTest {
         }
     }
 }
+
+/**
+ * I ruoli dichiarabili sono due.
+ *
+ * Con una casella sola, di fronte a quattordici persone, si dichiarano tutti
+ * attaccanti e non resta niente da usare. Con due, chi si iscrive dice di fatto
+ * dove NON gioca, ed e quella l'informazione utile.
+ */
+class DueRuoliDiPartenzaTest {
+
+    @Test
+    fun `finche sono intenzioni si mostrano tutti e due`() {
+        val p = Propensione.diPartenza(Ruolo.ATT, Ruolo.CEN)
+        assertEquals(Ruolo.ATT, p.etichetta, "Il primo resta il primo")
+        assertEquals("Attaccante o centrocampista · di partenza", p.etichettaTesto)
+    }
+
+    @Test
+    fun `il secondo ruolo sta in mezzo, non in concorrenza col primo`() {
+        val p = Propensione.diPartenza(Ruolo.ATT, Ruolo.CEN)
+        assertTrue(p.affinita(Ruolo.ATT) > p.affinita(Ruolo.CEN), "Il primo deve restare il primo")
+        assertTrue(p.affinita(Ruolo.CEN) > p.affinita(Ruolo.DIF), "Il secondo deve contare qualcosa")
+    }
+
+    /** Dichiararne due non deve valere piu di dichiararne uno. */
+    @Test
+    fun `dichiararne due non da piu credito di dichiararne uno`() {
+        val uno = Propensione.diPartenza(Ruolo.ATT)
+        val due = Propensione.diPartenza(Ruolo.ATT, Ruolo.CEN)
+        assertEquals(uno.confidenza, due.confidenza)
+        assertTrue(!due.confermataDaiFatti)
+    }
+
+    /** I fatti battono le intenzioni, tutte e due. */
+    @Test
+    fun `chi si dichiara attaccante o centrocampista ma difende diventa difensore`() {
+        var p = Propensione.diPartenza(Ruolo.ATT, Ruolo.CEN)
+        repeat(10) { p = p.dopoLaPartita(Ruolo.DIF, 0.9) }
+        assertEquals(Ruolo.DIF, p.etichetta)
+        assertEquals("Difensore", p.etichettaTesto, "Coi fatti in mano si mostra un ruolo solo")
+    }
+
+    @Test
+    fun `il secondo ruolo si vede nel sorteggio`() {
+        val jolly = Giocatore(
+            id = "j", nome = "Jolly",
+            skill = Skill(60.0, 60.0, 60.0, 60.0, 60.0, 60.0),
+            propensione = Propensione.diPartenza(Ruolo.ATT, Ruolo.CEN),
+        )
+        val puro = jolly.copy(
+            id = "p", nome = "Puro",
+            propensione = Propensione.diPartenza(Ruolo.ATT),
+        )
+        assertTrue(
+            jolly.ovr(Ruolo.CEN) > puro.ovr(Ruolo.CEN),
+            "Chi si e dichiarato anche centrocampista deve valere di piu a centrocampo",
+        )
+        assertEquals(jolly.ovr(Ruolo.DIF), puro.ovr(Ruolo.DIF), 0.001, "Altrove nessuna differenza")
+    }
+
+    @Test
+    fun `i due ruoli devono essere diversi`() {
+        assertFailsWith<IllegalArgumentException> { Propensione.diPartenza(Ruolo.ATT, Ruolo.ATT) }
+    }
+
+    /** Altrimenti il vincolo del portiere si scavalca dichiarandosi secondo portiere. */
+    @Test
+    fun `il portiere non si dichiara come secondo ruolo`() {
+        assertFailsWith<IllegalArgumentException> { Propensione.diPartenza(Ruolo.DIF, Ruolo.POR) }
+    }
+
+    @Test
+    fun `chi para non ha un secondo ruolo`() {
+        assertFailsWith<IllegalArgumentException> {
+            Propensione.portiere().copy(profiloSecondario = Ruolo.DIF)
+        }
+    }
+
+    @Test
+    fun `il secondo ruolo da solo non esiste`() {
+        assertFailsWith<IllegalArgumentException> {
+            Propensione.NUOVA.copy(profiloSecondario = Ruolo.CEN)
+        }
+    }
+}

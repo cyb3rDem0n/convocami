@@ -19,6 +19,8 @@ Su Supabase, *SQL Editor*:
 2. `db/migrations/002_ingresso_e_realtime.sql` — **questo serve**. Senza, chi
    riceve un codice d'invito non riesce a entrare nel gruppo, e il contatore
    delle iscrizioni non si aggiorna da solo.
+3. `db/migrations/003_email_privata.sql` — chiude la lettura dell'email altrui.
+   Va eseguito insieme al resto: il client legge già dalla vista che crea.
 
 Poi in *Storage* crea un bucket `avatars`, pubblico in lettura. Serve dalla
 prossima fase, ma tanto vale farlo adesso.

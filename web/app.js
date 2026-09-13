@@ -389,12 +389,23 @@ async function schermataPartita(id) {
 async function disegnaPartita(p) {
   const { data: iscritti, error } = await db
     .from("match_signups")
-    .select("stato, posto, profile_id, profiles(nome, avatar_url)")
+    .select("stato, posto, profile_id")
     .eq("match_id", p.id)
     .neq("stato", "ritirato")
     .order("posto", { ascending: true });
 
   if (error) { avvisa(spiega(error), true); return; }
+
+  // I nomi si leggono da profili_pubblici e non da profiles: l'email non deve
+  // uscire, e Postgres non sa filtrare per colonna dentro una policy — o leggi
+  // la riga o non la leggi. Quindi i compagni vedono una vista, e qui si
+  // ricuciono i due risultati a mano.
+  const { data: persone } = await db
+    .from("profili_pubblici")
+    .select("id, nome, avatar_url")
+    .in("id", (iscritti ?? []).map((r) => r.profile_id));
+
+  const nomi = Object.fromEntries((persone ?? []).map((x) => [x.id, x]));
 
   const convocati = (iscritti ?? []).filter((r) => r.stato === "convocato");
   const riserve = (iscritti ?? []).filter((r) => r.stato === "riserva");
@@ -406,7 +417,7 @@ async function disegnaPartita(p) {
     <li>
       <span class="numero">${i + 1}</span>
       <span class="chi">
-        <span class="nome ${r.profile_id === utente.id ? "io" : ""}">${esc(r.profiles?.nome ?? "—")}</span>
+        <span class="nome ${r.profile_id === utente.id ? "io" : ""}">${esc(nomi[r.profile_id]?.nome ?? "—")}</span>
       </span>
     </li>`;
 

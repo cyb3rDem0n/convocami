@@ -1,0 +1,333 @@
+# CallMeUp — passaggio di consegne
+
+Documento di riferimento per chi prende in mano l'implementazione. Contiene lo
+stato reale del progetto, cosa è verificato e cosa no, le convenzioni da
+rispettare e il lavoro da fare con i criteri per dirlo finito.
+
+Ultimo aggiornamento: 13 settembre 2026.
+
+---
+
+## 1. Cos'è
+
+App per organizzare il calcetto a 7 e a 8 dentro una comitiva di zona. Si apre
+la partita, ci si iscrive, a quota raggiunta le convocazioni si chiudono da
+sole, l'app propone le squadre, si gioca, e a fine partita i giocatori si votano
+a vicenda. Da quei voti l'app impara chi gioca dove e quanto vale, senza che
+nessuno debba dichiararlo.
+
+Due client sullo stesso database: web app (già viva) e app Android nativa
+(ancora un guscio). Backend Supabase, piano gratuito, costo di esercizio zero.
+
+---
+
+## 2. Stato reale
+
+### Fatto e verificato
+
+| Cosa | Dove | Come è stato verificato |
+|---|---|---|
+| Motore di sorteggio squadre | `core/teamdraw/` | 63 test, compilati ed eseguiti |
+| Propensione ai ruoli, voto per fasi | `core/teamdraw/` | Convergenza simulata su 40 partite |
+| Schema database | `db/migrations/001` | Eseguito su Postgres 16: 15 tabelle, 4 viste, 33 policy, zero errori |
+| Trigger iscrizioni | `db/migrations/001` | Provati: 16 iscritti su 14 posti → 14 convocati, 2 riserve, 56 notifiche in coda, promozione riserve al ritiro |
+| Ingresso gruppo, realtime | `db/migrations/002` | Eseguito; funzioni provate una per una |
+| Web app: accesso, gruppo, partite, iscrizioni | `web/` | Sintassi e resa grafica verificate |
+
+### Fatto ma NON verificato
+
+La web app **non è mai stata eseguita contro un database vero**: l'ambiente in
+cui è stata scritta non raggiunge npm, i CDN né Supabase. Sintassi, struttura e
+impaginato sono controllati; il comportamento runtime no. Chi prende in mano il
+progetto **può compilare ed eseguire davvero**, e la prima cosa da fare è
+proprio quello.
+
+### Non fatto
+
+App Android oltre il guscio; pagamenti; punti affiatamento; voto e statistiche
+lato client; riepilogo partita; classifiche; zone; notifiche push ed email.
+
+---
+
+## 3. Architettura e convenzioni — da rispettare
+
+**Il codice è in italiano.** Nomi di funzioni, variabili, tabelle, commenti.
+`iscriviti`, `convocati`, `propensione`, `turniInPorta`. Non è vezzo: il dominio
+è italiano e tradurlo introduce ambiguità (*pitch* è il campo o il tiro?). I
+termini tecnici restano in inglese dove non hanno un equivalente sensato.
+
+**Il motore di sorteggio è Kotlin puro, senza dipendenze.** Vive in
+`core/teamdraw/`, non importa nulla di Android né di Supabase, e si testa con una
+JVM in un secondo. Non introdurre dipendenze lì dentro. Se serve al web, va
+esposto come Edge Function, **non riscritto in JavaScript**: due implementazioni
+dello stesso algoritmo divergono sempre.
+
+**La web app non ha passaggio di build.** HTML, CSS e un modulo ES, con Supabase
+dalla CDN. Niente npm, niente bundler, niente framework. È una scelta: si
+pubblica copiando file e si corregge ricaricando la pagina. Mantenerla, finché
+regge.
+
+**La logica delicata sta nel database.** Chiusura iscrizioni, conferme,
+promozione riserve sono trigger Postgres, non codice applicativo: se due persone
+si iscrivono nello stesso istante al quattordicesimo posto, solo il database può
+arbitrare. Le operazioni che devono essere atomiche o che scavalcano le policy
+sono funzioni `security definer`. Continuare così.
+
+**Row Level Security su tutto.** Ogni nuova tabella nasce con le sue policy.
+
+**Ogni tabella porta `group_id`.** L'app è multi-gruppo dal primo giorno.
+
+---
+
+## 4. Il caso d'uso completo
+
+Questo è il flusso che il prodotto deve coprire. Le parti già fatte sono
+marcate.
+
+### 4.1 Zone e gruppi
+
+Un gruppo è una comitiva di zona: *Bicocca Region*. Chi vive dall'altra parte
+della città non vi gioca, e la separazione è quella. Il gruppo ha quindi una
+**zona** (testo libero: quartiere, paese, nome che si danno loro).
+
+Una persona può stare in più gruppi. Il suo profilo mostra la zona o le zone di
+appartenenza.
+
+*Stato: gruppi fatti. Zona da aggiungere.*
+
+### 4.2 Il profilo — figurina
+
+Foto o avatar, nomignolo, zona, ruoli possibili, skill, punti affiatamento,
+etichette guadagnate. **L'email non si mostra mai**: serve solo alla
+registrazione.
+
+Ogni giocatore può indicare **due ruoli** che si sente di ricoprire. Per chi è
+nuovo sono l'unica informazione disponibile e servono al primo sorteggio; poi i
+voti li scavalcano. I ruoli dichiarati restano visibili nel profilo, ma
+l'etichetta mostrata è quella dedotta.
+
+*Stato: profilo minimo fatto, un solo ruolo di partenza. Da estendere.*
+
+### 4.3 Organizzare
+
+L'organizzatore apre la partita: data, ora, campo, formato, quota a testa e
+**come si paga** — o si raccoglie da chi ha anticipato, o ognuno per sé. Tutti i
+membri ricevono la notifica.
+
+*Stato: creazione fatta, senza pagamento.*
+
+### 4.4 Iscriversi
+
+Iscrizione in ordine di arrivo. A quota raggiunta le convocazioni **si chiudono
+da sole** e compare la quota da pagare con le istruzioni.
+
+Oltre la capienza si va in lista d'attesa, **massimo due persone**. Il
+tredicesimo che ci prova viene informato che la lista è piena.
+
+C'è il tasto **mi ritiro**. Chi si ritira libera il posto e la prima riserva
+entra, avvisata.
+
+*Stato: fatto, tranne il tetto di due riserve e la quota.*
+
+### 4.5 Punti affiatamento
+
+Ogni giocatore ha un valore legato alla sua affidabilità: quante volte c'è
+stato, quante volte si è tirato indietro.
+
+**Il costo sta nel ritardo, non nel ritiro.** Questo è il punto su cui il
+meccanismo si gioca: se ritirarsi costa sempre, la gente smette di ritirarsi e
+semplicemente non si presenta — che per il gruppo è molto peggio, perché con un
+ritiro tre giorni prima entra una riserva, con un buco alle 21:00 si gioca in
+tredici. La scala premia quindi chi avvisa:
+
+| Evento | Effetto |
+|---|---|
+| Presenza | +2 |
+| Ritiro oltre 48 ore prima | 0 |
+| Ritiro fra 48 e 6 ore prima | −1 |
+| Ritiro sotto le 6 ore | −4 |
+| Non presentato (lo segna l'organizzatore) | −10 |
+| Riserva che entra all'ultimo e gioca | +4 |
+
+Valore mostrato come percentuale di affidabilità sulle ultime 20 partite, non
+come punteggio assoluto: un numero che scende e basta demotiva chi entra tardi
+nel gruppo.
+
+*Stato: da fare.*
+
+### 4.6 Le squadre
+
+Sorteggio pseudo-casuale che tiene conto della propensione ai ruoli e della
+forza; per chi è nuovo valgono i due ruoli dichiarati; se non c'è abbastanza
+informazione, sorteggio puro dichiarato come tale. Il motore c'è ed è testato.
+
+L'organizzatore può **sistemare la formazione** e indicare il campo. Le squadre
+si chiamano **bianca** e **nera** — per le maglie — e la formazione finale viene
+mostrata a tutti.
+
+*Stato: motore fatto. Schermata, ritocchi e assegnazione colori da fare.*
+
+### 4.7 Dopo la partita
+
+**90 minuti dopo il fischio finale** arriva a tutti la notifica per votare:
+
+- valutare le prestazioni degli altri, per fase di gioco (difesa, attacco,
+  regia, porta) — obbligatorio per chiudere;
+- **reclamare i propri gol e assist**;
+- gol più bello e migliore in campo — facoltativi.
+
+L'organizzatore inserisce il risultato finale e segna eventuali assenti.
+
+**I gol reclamati vanno ancorati al risultato.** Se i claim di una squadra
+superano i gol che ha segnato, l'evento non si chiude e l'organizzatore
+arbitra. Senza questo vincolo, in tre partite la classifica cannonieri diventa
+finzione.
+
+*Stato: modello dati del voto fatto. Tutto il resto da fare.*
+
+### 4.8 Etichette della settimana
+
+Chi fa qualcosa di notevole si prende un'etichetta:
+
+| Etichetta | Quando |
+|---|---|
+| Bomber | 2 o più gol |
+| Saracinesca | rigore parato, o porta inviolata da portiere |
+| Muro | difensore in una squadra che subisce 1 gol o meno |
+| Regista | 3 o più assist |
+| Uomo ovunque | nominato in 3 fasi diverse su 4 |
+
+Le soglie sono una proposta e vanno tarate sulle prime partite vere.
+
+*Stato: da fare.*
+
+### 4.9 Chiusura e storico
+
+A votazioni concluse l'evento si chiude e viene generato il **riepilogo**:
+risultato, marcatori, assist, formazioni, migliore in campo, gol più bello,
+etichette assegnate, variazioni di skill.
+
+Nel tempo: classifica cannonieri, miglior giocatore per ruolo, presenze,
+affidabilità.
+
+*Stato: da fare.*
+
+---
+
+## 5. Aspetto
+
+Riferimento dichiarato: **FIFA 26 / PES 26**. Interfaccia scura, schede
+giocatore in stile figurina, numeri grandi, transizioni.
+
+Va detto che è un cambio di direzione rispetto a quello che c'è ora, che è
+sobrio e documentale. La direzione è legittima e per un'app di calcio funziona,
+ma tre avvertenze da chi la implementerà:
+
+1. **La schermata che si guarda di più è la lista iscritti.** Deve restare
+   leggibile con il telefono in mano fuori dal campo, di sera. Il vetro scuro e
+   i riflessi lì fanno danni.
+2. **Le animazioni costano batteria e frame.** Vanno dove c'è un momento — la
+   rivelazione delle squadre, l'etichetta guadagnata — non su ogni lista.
+3. **La figurina è l'idea buona.** Schede giocatore con foto, valori per ruolo,
+   etichette: è esattamente il linguaggio giusto, e si può fare bene con CSS
+   puro senza appesantire.
+
+Palette attuale da rivedere in chiave scura: verde campo `#2F6B47` e
+`#64B383`, inchiostro `#10140F`. Caratteri: Archivo per i titoli, IBM Plex Sans
+per il testo, IBM Plex Mono per i dati.
+
+---
+
+## 6. Lavoro da fare
+
+Ordinato per dipendenze. Ogni voce ha il criterio per dirla finita.
+
+### Blocco A — far funzionare quello che c'è *(prima di tutto)*
+
+1. **Eseguire la web app contro Supabase vero.**
+   *Finito quando:* registrazione, creazione gruppo, apertura partita,
+   iscrizione e ritiro funzionano da due browser diversi, e il contatore si
+   muove da solo.
+
+2. ~~Chiudere la falla sull'email.~~ **Fatto** in `003_email_privata.sql`:
+   i compagni leggono la vista `profili_pubblici` (id, nome, avatar) e da
+   `profiles` ciascuno vede solo la propria riga. Verificato su Postgres.
+   Il client è già allineato: legge da lì, non più con una join su `profiles`.
+
+### Blocco B — completare il giro della partita
+
+3. **Tetto di due riserve** in `iscriviti`, con messaggio chiaro al terzo.
+4. **Quota e pagamento**: campi su `matches` (importo, modalità, chi anticipa,
+   riferimento per pagare), tabella dei saldi per giocatore.
+   L'app **tiene il conto, non muove soldi**: nessun incasso, nessun PSP.
+   *Finito quando:* a iscrizioni chiuse ogni convocato vede quanto deve e a chi,
+   e l'organizzatore può segnare chi ha saldato.
+5. **Punti affiatamento**: colonna, trigger che li aggiorna su ritiro e su
+   presenza, tabella `affidabilita_eventi` per lo storico.
+   *Finito quando:* un ritiro a 3 giorni non costa nulla e uno a 2 ore costa,
+   verificato con un test SQL.
+6. **Due ruoli dichiarabili** al posto di uno: `player_roles.profilo_iniziale`
+   diventa una coppia.
+
+### Blocco C — squadre
+
+7. **Sorteggio dal client.** Il motore è Kotlin: esporlo come Edge Function
+   Supabase (Deno) che lo richiama, oppure — se troppo scomodo — portarlo in
+   TypeScript **una volta sola**, lato server, mai nei client.
+8. **Schermata formazione**: campo disegnato, squadra bianca e nera, ritocchi
+   dell'organizzatore con scarto di forza aggiornato mentre sposta.
+   *Finito quando:* l'organizzatore sposta un giocatore e vede il numero
+   cambiare, e i convocati vedono la formazione finale.
+
+### Blocco D — dopo la partita
+
+9. **Notifica a 90 minuti**: riga in `notifications_outbox` con `invia_dopo`, e
+   una funzione schedulata che svuota la coda.
+10. **Schermata voto**: quattro nomine, claim gol e assist, extra facoltativi.
+11. **Risultato e arbitraggio dei claim**, con il vincolo del punto 4.7.
+12. **Etichette**, **riepilogo**, **classifiche**.
+
+### Blocco E — Android e pubblicazione
+
+13. App Android che rifà il giro completo, riusando il motore direttamente.
+14. Push FCM, SMTP vero, 12 tester per 14 giorni, Play Store.
+
+---
+
+## 7. Trappole note
+
+- **`Confirm email` deve restare spento** finché non c'è un SMTP proprio:
+  l'email integrata di Supabase manda 2 messaggi all'ora e solo a indirizzi del
+  team del progetto. Con la conferma accesa, nessun tester riesce a registrarsi.
+- **Le tabelle nuove vanno aggiunte alla publication realtime** se il client
+  deve vederne i cambiamenti da solo.
+- **Il progetto Supabase gratuito va in pausa dopo 7 giorni senza traffico.**
+- **`web/config.js` è versionato di proposito.** La chiave anon è pubblica per
+  definizione; ignorarla faceva solo restare bianca la pagina su Vercel.
+- **Il flag `portiere` è dell'organizzatore**, protetto da trigger. Chi para,
+  para: quel ruolo non si deduce dai voti, e l'esclusione vale in entrambe le
+  direzioni.
+- **Non toccare i pesi della funzione di costo** senza rieseguire
+  `Simulazione`: due difetti seri sono già stati trovati lì, e non facevano
+  fallire nulla — producevano squadre plausibili e sbagliate.
+
+---
+
+## 8. Comandi
+
+```bash
+# motore di sorteggio
+./gradlew :core:teamdraw:test        # 63 test
+./gradlew assembleDebug              # APK di debug
+
+# web app
+cd web && python3 -m http.server 8000
+
+# database: su Supabase, SQL Editor, in ordine
+# db/migrations/001_schema.sql
+# db/migrations/002_ingresso_e_realtime.sql
+```
+
+Documenti: [`impianto-tecnico.md`](impianto-tecnico.md) per il perché delle
+scelte, [`primo-avvio.md`](primo-avvio.md) per la configurazione,
+[`build-e-deploy.md`](build-e-deploy.md) per firma e pubblicazione.

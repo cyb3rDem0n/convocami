@@ -44,6 +44,13 @@ stessa migrazione.
 
 **Ogni tabella porta `group_id`.** L'app è multi-gruppo dal primo giorno.
 
+**Web e Android hanno la STESSA identita visiva, e `design/tokens.json` ne è
+la fonte unica.** Non condividono codice — CSS di qua, Compose di là — ma
+condividono quei valori. Se cambi un colore, cambialo in tutti e tre i posti.
+Due cose restano spente di proposito su Android: i **colori dinamici** di
+Material 3, che prenderebbero le tinte dallo sfondo del telefono, e il **tema
+chiaro**, che non esiste in nessuno dei due client.
+
 **I client leggono `profili_pubblici`, mai `profiles`.** L'email non deve
 uscire, e Postgres non sa filtrare per colonna dentro una policy: o leggi la
 riga o non la leggi.

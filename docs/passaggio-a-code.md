@@ -217,6 +217,28 @@ affidabilità.
 Riferimento dichiarato: **FIFA 26 / PES 26**. Interfaccia scura, schede
 giocatore in stile figurina, numeri grandi, transizioni.
 
+**Vale per entrambi i client.** Sono lo stesso prodotto e le stesse persone
+passano dall'uno all'altro: se non si somigliano, sembrano due app diverse dello
+stesso gruppo. Ma l'identità è condivisa, il codice no — CSS sul web, Compose su
+Android. Quello che si condivide è `design/tokens.json`, che è la fonte unica
+dei valori. Non c'è generazione automatica di proposito: introdurla vorrebbe
+dire aggiungere un passaggio di build alla web app, che oggi non ne ha.
+
+Due trappole di Android, entrambe già chiuse nel repo ma facili da riaprire:
+
+- **I colori dinamici di Material 3 sono spenti.** Erano accesi: su Android 12+
+  avrebbero preso le tinte dallo sfondo del telefono, e con uno sfondo viola
+  CallMeUp sarebbe diventata viola. Per un'app di sistema è una funzione, per
+  un'identità dichiarata è la sua fine.
+- **I caratteri vanno imbarcati nell'APK** (`app/src/main/res/font/`). Su web
+  arrivano da Google Fonts, su Android non esiste una CDN di font: senza i file,
+  il sistema ripiega su Roboto e le due app si somigliano soltanto nei colori.
+  È il modo più comune in cui un'identità condivisa si perde per strada.
+
+Il tema chiaro non esiste in nessuno dei due, ed è una scelta: un'app che vive
+di schede lucide e numeri grandi su fondo scuro non ha una versione chiara che
+regga, e averne una a metà sarebbe peggio che non averla.
+
 Va detto che è un cambio di direzione rispetto a quello che c'è ora, che è
 sobrio e documentale. La direzione è legittima e per un'app di calcio funziona,
 ma tre avvertenze da chi la implementerà:

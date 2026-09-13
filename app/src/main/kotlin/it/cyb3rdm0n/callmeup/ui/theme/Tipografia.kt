@@ -33,7 +33,7 @@ val Testo = FontFamily(
     Font(R.font.barlow_semibold, FontWeight.SemiBold),
 )
 
-val TipografiaCallMeUp = Typography(
+val TipografiaConvocami = Typography(
     // I numeri grandi: OVR, contatore iscrizioni, forza delle squadre
     displayLarge = TextStyle(fontFamily = Display, fontSize = 46.sp, letterSpacing = (-1.4).sp),
     displayMedium = TextStyle(fontFamily = Display, fontSize = 34.sp, letterSpacing = (-1).sp),

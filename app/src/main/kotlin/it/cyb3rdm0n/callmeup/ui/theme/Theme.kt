@@ -6,7 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 /**
- * L'identita di CallMeUp, la stessa della web app.
+ * L'identita di Convocami, la stessa della web app.
  *
  * DUE COSE SONO SPENTE DI PROPOSITO, ed entrambe sono comportamenti che Material
  * 3 accende da solo.
@@ -76,10 +76,10 @@ private val Schema = darkColorScheme(
 )
 
 @Composable
-fun CallMeUpTheme(content: @Composable () -> Unit) {
+fun ConvocamiTheme(content: @Composable () -> Unit) {
     MaterialTheme(
         colorScheme = Schema,
-        typography = TipografiaCallMeUp,
+        typography = TipografiaConvocami,
         content = content,
     )
 }

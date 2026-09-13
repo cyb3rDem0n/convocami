@@ -1,4 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.CallMeUp" parent="android:Theme.Material.Light.NoActionBar" />
+    <!--
+      Questo tema non e quello che si vede: quello lo fa Compose, in Theme.kt.
+      Questo e la finestra PRIMA che Compose disegni, cioe il colore che riempie
+      lo schermo nel mezzo secondo fra il tocco sull'icona e la prima schermata.
+
+      Era Material.Light, e quindi bianco: un'app dichiaratamente scura che a
+      ogni avvio da freddo sbatteva in faccia un lampo bianco. Non e un dettaglio
+      di gusto, e la prima cosa che l'occhio registra dell'app.
+
+      Il fondo e #070B08, lo stesso --notte di design/tokens.json e di Theme.kt.
+    -->
+    <style name="Theme.Convocami" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/notte</item>
+        <item name="android:statusBarColor">@color/notte</item>
+        <item name="android:navigationBarColor">@color/notte</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
 </resources>

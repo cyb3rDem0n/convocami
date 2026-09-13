@@ -1,4 +1,4 @@
-# CallMeUp — istruzioni per chi lavora su questo repo
+# Convocami — istruzioni per chi lavora su questo repo
 
 App per organizzare il calcetto a 7 e a 8 in una comitiva di zona. Iscrizioni
 che si chiudono da sole, squadre sorteggiate in modo equo e mai uguale, e un

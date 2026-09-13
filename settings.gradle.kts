@@ -14,7 +14,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "CallMeUp"
+rootProject.name = "Convocami"
 
 include(":app")
 include(":core:teamdraw")

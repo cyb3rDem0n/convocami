@@ -1,4 +1,4 @@
-# CallMeUp — passaggio di consegne
+# Convocami — passaggio di consegne
 
 Documento di riferimento per chi prende in mano l'implementazione. Contiene lo
 stato reale del progetto, cosa è verificato e cosa no, le convenzioni da
@@ -116,7 +116,9 @@ nuovo sono l'unica informazione disponibile e servono al primo sorteggio; poi i
 voti li scavalcano. I ruoli dichiarati restano visibili nel profilo, ma
 l'etichetta mostrata è quella dedotta.
 
-*Stato: profilo minimo fatto, un solo ruolo di partenza. Da estendere.*
+*Stato: due ruoli dichiarabili fatti — `dichiara_ruoli()` in `005` e
+`Propensione.diPartenza(principale, secondo)` nel motore. Restano le due
+tendine nel profilo e la foto.*
 
 ### 4.3 Organizzare
 
@@ -128,7 +130,8 @@ niente saldi da spuntare. È una decisione di prodotto, non una mancanza —
 toccare denaro vero significa entrare nella normativa sui pagamenti, e per una
 comitiva è sproporzionato. I soldi viaggiano come sono sempre viaggiati.
 
-*Stato: il campo `quota_eur` esiste già su `matches`. Manca solo mostrarlo.*
+*Stato: il campo `quota_eur` esiste su `matches` e non può essere negativo.
+Manca solo mostrarlo.*
 
 ### 4.4 Iscriversi
 
@@ -141,7 +144,9 @@ tredicesimo che ci prova viene informato che la lista è piena.
 C'è il tasto **mi ritiro**. Chi si ritira libera il posto e la prima riserva
 entra, avvisata.
 
-*Stato: fatto, tranne il tetto di due riserve e la quota da mostrare.*
+*Stato: fatto, tetto di due riserve compreso (`004`, provato anche sul
+rientro di chi si era ritirato). Manca la quota da mostrare, e usare
+`posti_liberi()` per dirlo prima che uno prema il pulsante.*
 
 ### 4.5 Ritiri
 
@@ -157,7 +162,8 @@ contrario di quello che vuole dire.
 È il dato a fare il lavoro, non una regola: in una comitiva che si conosce,
 vedere i numeri di tutti basta e avanza.
 
-*Stato: da fare. Sono due contatori e una riga nel profilo.*
+*Stato: i dati ci sono — vista `contatori_giocatore` in `004`. Manca la riga
+nel profilo che li mostra in coppia.*
 
 ### 4.6 Le squadre
 
@@ -237,7 +243,7 @@ Due trappole di Android, entrambe già chiuse nel repo ma facili da riaprire:
 
 - **I colori dinamici di Material 3 sono spenti.** Erano accesi: su Android 12+
   avrebbero preso le tinte dallo sfondo del telefono, e con uno sfondo viola
-  CallMeUp sarebbe diventata viola. Per un'app di sistema è una funzione, per
+  Convocami sarebbe diventata viola. Per un'app di sistema è una funzione, per
   un'identità dichiarata è la sua fine.
 - **I caratteri vanno imbarcati nell'APK** (`app/src/main/res/font/`). Su web
   arrivano da Google Fonts, su Android non esiste una CDN di font: senza i file,

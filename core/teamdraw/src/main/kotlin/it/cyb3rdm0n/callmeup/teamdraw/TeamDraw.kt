@@ -4,7 +4,7 @@ import kotlin.math.abs
 import kotlin.random.Random
 
 /**
- * Motore di sorteggio squadre di CallMeUp.
+ * Motore di sorteggio squadre di Convocami.
  *
  * Kotlin puro, nessuna dipendenza da Android e nessuna dal backend: gira sul
  * telefono di chi organizza, si testa con una JVM e domani si ricompila dentro

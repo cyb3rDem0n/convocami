@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Qui sta un colore solo, e serve al tema della finestra: le tinte dell'app
+  vivono in Theme.kt, non in XML. Se cambia il fondo, cambia in tre posti —
+  design/tokens.json, Theme.kt e qui.
+-->
+<resources>
+    <color name="notte">#FF070B08</color>
+</resources>

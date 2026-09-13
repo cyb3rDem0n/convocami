@@ -16,7 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import it.cyb3rdm0n.callmeup.teamdraw.FORMAZIONI
-import it.cyb3rdm0n.callmeup.ui.theme.CallMeUpTheme
+import it.cyb3rdm0n.callmeup.ui.theme.ConvocamiTheme
 
 /**
  * Schermata segnaposto della fase 0.
@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { CallMeUpTheme { Scaffold { p -> Benvenuto(Modifier.padding(p)) } } }
+        setContent { ConvocamiTheme { Scaffold { p -> Benvenuto(Modifier.padding(p)) } } }
     }
 }
 
@@ -40,7 +40,7 @@ private fun Benvenuto(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text("CallMeUp", style = MaterialTheme.typography.displaySmall)
+        Text("Convocami", style = MaterialTheme.typography.displaySmall)
         Text(
             "Motore di sorteggio pronto: formati " +
                 FORMAZIONI.keys.sorted().joinToString(" e ") { "${it}v$it" },

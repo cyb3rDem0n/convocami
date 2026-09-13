@@ -53,5 +53,5 @@ jobs:
       # comodo per far provare una versione senza compilare nulla.
       - uses: actions/upload-artifact@v4
         with:
-          name: callmeup-debug
+          name: convocami-debug
           path: app/build/outputs/apk/debug/*.apk

@@ -1,11 +1,15 @@
-# CallMeUp
+# Convocami
 
 App Android per organizzare le partite di calcetto a 7 e a 8. Si apre la
 partita, ci si iscrive, al quattordicesimo le iscrizioni si chiudono da sole e
 arriva la conferma con data, ora e campo. Le squadre le sorteggia l'app:
 equilibrate, ma diverse ogni volta.
 
-Il nome è *call-up*, la convocazione.
+L'app si chiama **Convocami**: i suoi utenti sono italiani, e la parola *è* la
+funzione. Il repo e il package restano `it.cyb3rdm0n.callmeup` — *call-up*, la
+convocazione — per due motivi: l'identificatore Android non si cambia più dopo
+la pubblicazione, e un nome neutro viaggia meglio se un domani l'app cambia
+mani. Sul telefono e sullo store si legge solo Convocami.
 
 ## Stato
 

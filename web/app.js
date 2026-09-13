@@ -1,4 +1,4 @@
-// CallMeUp — web app.
+// Convocami — web app.
 //
 // Volutamente SENZA passaggio di build: ES module, Supabase dalla CDN, CSS a
 // mano. Non c'e niente da installare e niente da compilare, quindi si pubblica
@@ -107,7 +107,7 @@ function schermataAccesso(modo = "entra") {
   const registrazione = modo === "registrati";
 
   mostra(`
-    <h1>CallMeUp</h1>
+    <h1>Convocami</h1>
     <p class="sotto">Organizza il calcetto senza rincorrere nessuno su WhatsApp.</p>
 
     <form id="form-accesso">
@@ -296,7 +296,7 @@ async function schermataGruppo() {
   `);
 
   document.getElementById("condividi").addEventListener("click", async () => {
-    const testo = `Entra nel gruppo "${gruppo.nome}" su CallMeUp col codice ${gruppo.codice_invito}\n${location.origin + location.pathname}`;
+    const testo = `Entra nel gruppo "${gruppo.nome}" su Convocami col codice ${gruppo.codice_invito}\n${location.origin + location.pathname}`;
     try {
       if (navigator.share) await navigator.share({ text: testo });
       else { await navigator.clipboard.writeText(testo); avvisa("Copiato: incollalo dove vuoi"); }

@@ -1,3 +1,9 @@
+// Dentro un build.gradle.kts "java" non e il package java: e l'estensione del
+// plugin Java di Gradle. Quindi java.util.Properties non si risolve, e l'errore
+// che si legge e "Unresolved reference: util", che manda a cercare tutt'altro.
+// L'import toglie l'ambiguita.
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -18,9 +24,9 @@ android {
 
         // Le chiavi NON stanno nel repo: si leggono da local.properties, che
         // e ignorato da git. Vedi docs/build-e-deploy.md.
-        val props = java.util.Properties().apply {
+        val props = Properties().apply {
             val f = rootProject.file("local.properties")
-            if (f.exists()) f.inputStream().use { load(it) }
+            if (f.exists()) f.inputStream().use { flusso -> load(flusso) }
         }
         buildConfigField("String", "SUPABASE_URL",
             "\"${props.getProperty("supabase.url") ?: System.getenv("SUPABASE_URL") ?: ""}\"")

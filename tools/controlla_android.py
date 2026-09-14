@@ -108,6 +108,34 @@ if manifest.exists():
             errore(f"AndroidManifest.xml: la classe .{m.group(1)} non ha un file sorgente")
 
 # ---------------------------------------------------------------------------
+# 5. Contratto minimo del prototipo visuale provato su dispositivo.
+#
+# Un Box, a differenza di Surface, non imposta LocalContentColor: togliere il
+# provider fa tornare neri tutti i Text senza un colore esplicito. Anche logo e
+# CTA sono gia' regrediti in azioni mute durante le prime prove dell'APK. Questi
+# controlli non giudicano il layout, ma impediscono di perdere di nuovo le tre
+# correzioni osservabili prima ancora di costruire l'app.
+# ---------------------------------------------------------------------------
+interfaccia = SRC / "kotlin" / "it" / "cyb3rdm0n" / "convocami" / "ui" / "Convocami.kt"
+if interfaccia.exists():
+    testo = interfaccia.read_text(encoding="utf-8")
+    contratti = {
+        "CompositionLocalProvider(LocalContentColor provides Gesso)":
+            "manca il colore chiaro predefinito: i testi sul fondo scuro tornano neri",
+        "painterResource(R.mipmap.ic_launcher_foreground)":
+            "il marchio dell'app non viene mostrato nella schermata di accesso",
+        'AzionePrimaria("APRI UNA PARTITA", nuovaPartita)':
+            "la CTA Apri una partita non e' collegata alla navigazione",
+        "Destinazione.NuovaPartita -> NuovaPartita(":
+            "manca la destinazione del modulo nuova partita",
+    }
+    for frammento, messaggio in contratti.items():
+        if frammento not in testo:
+            errore(f"{interfaccia.relative_to(RADICE)}: {messaggio}")
+else:
+    errore(f"{interfaccia.relative_to(RADICE)}: interfaccia Compose assente")
+
+# ---------------------------------------------------------------------------
 # Esito
 # ---------------------------------------------------------------------------
 if errori:

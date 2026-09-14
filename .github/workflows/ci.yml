@@ -24,6 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Controlli statici Android
+        run: python3 tools/controlla_android.py
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin

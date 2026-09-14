@@ -1,14 +1,42 @@
 # Come si compila l'app e come va online la web app
 
-Due catene separate, che condividono solo il database. L'app Android si compila
-sul tuo computer e produce un APK; la web app si pubblica da GitHub e va online
-da sola a ogni push.
+Due catene separate, che condividono solo il database. L'app Android produce un
+APK; la web app si pubblica da GitHub e va online da sola a ogni push.
 
 ---
 
 ## Parte 1 — Ottenere l'APK
 
-### Cosa serve installato
+### Senza installare niente: lo costruisce GitHub
+
+**Questa è la strada corta, e per provare l'app sul telefono basta e avanza.**
+Il repo ha già la CI che compila l'APK sulle macchine di GitHub, gratis, a ogni
+push su `main`.
+
+1. Push su GitHub.
+2. Scheda **Actions** → l'ultima run → in fondo, **Artifacts** →
+   `convocami-debug`.
+3. Scarichi uno zip, dentro c'è l'APK. Lo mandi su WhatsApp a chi deve provarlo.
+4. Sul telefono, alla prima installazione Android chiede di autorizzare
+   l'installazione da quella app (*«Consenti da questa origine»*): è normale per
+   un APK che non arriva dal Play Store.
+
+Perché l'APK parli col database servono due **variabili di repository** —
+*Settings → Secrets and variables → Actions → Variables* — chiamate
+`SUPABASE_URL` e `SUPABASE_ANON_KEY`. Sono variabili e non segreti: la chiave
+anon è pubblica per definizione, vive già nel browser di chiunque apra la web
+app, e a proteggere i dati sono le policy di Row Level Security. Senza,
+l'APK si costruisce lo stesso ma non parla con nessuno.
+
+Gli artifact restano scaricabili **90 giorni**. Sono APK di *debug*: si
+installano a mano ma non si pubblicano sul Play Store, e per quello serve la
+firma — parte 3.
+
+### Sul tuo computer: cosa serve installato
+
+Serve quando vuoi vedere le modifiche subito, usare l'emulatore o il debugger,
+e non aspettare due minuti di CI a ogni tentativo. In pratica: quando *sviluppi*
+l'app, non quando la provi.
 
 | | Cosa | Perché |
 |---|---|---|
@@ -57,7 +85,14 @@ gradle wrapper --gradle-version 8.12
 ```
 
 Da quel momento usi sempre `./gradlew`, che scarica la versione giusta per conto
-suo e rende il build identico sul tuo portatile e sulla CI.
+suo.
+
+La CI invece invoca `gradle` e non `./gradlew`, proprio perché il wrapper non è
+nel repo: con `./gradlew` fallirebbe alla prima riga con *«No such file»*. La
+versione è fissata in un punto solo, `VERSIONE_GRADLE` in
+`.github/workflows/ci.yml`: se la cambi lì, cambiala anche nel comando qui
+sopra, altrimenti il tuo portatile e la CI compilano con due Gradle diversi —
+che è esattamente la situazione in cui «da me funziona».
 
 ### Build di sviluppo
 

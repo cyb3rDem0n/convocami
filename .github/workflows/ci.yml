@@ -1,9 +1,21 @@
 name: CI
 
+# Questo file fa una cosa che vale piu di quanto sembri: costruisce l'APK sulle
+# macchine di GitHub, gratis, senza che sul portatile ci sia installato niente
+# di Android. Chi vuole provare l'app scarica il file dalla pagina della run.
+#
+# Nota sul wrapper: qui si invoca `gradle` e non `./gradlew`, perche il binario
+# del wrapper non e versionato (e un jar, e non si mettono jar nel repo). Con
+# `./gradlew` questa CI fallirebbe alla prima riga con "No such file". In
+# locale invece il wrapper esiste, perche lo genera Android Studio.
+
 on:
   push:
     branches: [main]
   pull_request:
+
+env:
+  VERSIONE_GRADLE: "8.12"
 
 jobs:
   motore:
@@ -18,11 +30,13 @@ jobs:
           java-version: '17'
 
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ env.VERSIONE_GRADLE }}
 
       # Il modulo teamdraw e Kotlin puro: si testa senza SDK Android,
       # quindi la CI resta veloce e non scarica mezzo gigabyte.
       - name: Test
-        run: ./gradlew :core:teamdraw:test --no-daemon
+        run: gradle :core:teamdraw:test --no-daemon
 
       - name: Referto dei test
         if: always()
@@ -45,9 +59,19 @@ jobs:
 
       - uses: android-actions/setup-android@v3
       - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ env.VERSIONE_GRADLE }}
 
+      # Due variabili di repository, non due segreti: la chiave anon e pubblica
+      # per definizione — vive gia nel browser di chiunque apra la web app — e a
+      # proteggere i dati sono le policy di Row Level Security. Si impostano in
+      # Settings -> Secrets and variables -> Actions -> Variables.
+      # Senza, l'APK si costruisce lo stesso ma non parla con nessun database.
       - name: Build
-        run: ./gradlew assembleDebug --no-daemon
+        env:
+          SUPABASE_URL: ${{ vars.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ vars.SUPABASE_ANON_KEY }}
+        run: gradle assembleDebug --no-daemon
 
       # L'APK resta scaricabile dalla pagina della run per 90 giorni:
       # comodo per far provare una versione senza compilare nulla.

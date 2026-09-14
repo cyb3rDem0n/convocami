@@ -70,7 +70,9 @@ nuova implementazione, non riscrivere l'app.
 ./gradlew assembleDebug         # APK installabile
 ```
 
-Il binario del wrapper non è versionato: la prima volta lo generi con
+Per l'APK non serve installare niente: la CI del repo lo costruisce su GitHub
+e lo lascia scaricabile dalla pagina della run. Se invece vuoi compilare in
+locale, il binario del wrapper non è versionato e la prima volta lo generi con
 `gradle wrapper --gradle-version 8.12`, oppure aprendo il progetto in Android
 Studio, che lo crea da solo. Il perché è in
 [docs/build-e-deploy.md](docs/build-e-deploy.md).

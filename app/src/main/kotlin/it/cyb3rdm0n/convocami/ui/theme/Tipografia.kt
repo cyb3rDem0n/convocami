@@ -9,15 +9,16 @@ import androidx.compose.ui.unit.sp
 import it.cyb3rdm0n.convocami.R
 
 /**
- * I caratteri sono gli stessi della web app, ma qui vanno IMBARCATI nell'APK:
- * Android non ha una CDN di font. Senza i file in res/font/ il sistema ripiega
- * su Roboto e le due app si somigliano soltanto nei colori — che e il modo piu
- * comune in cui un'identita condivisa si perde per strada.
+ * I caratteri sono gli stessi della web app, ma qui sono IMBARCATI nell'APK:
+ * Android non ha una CDN di font. Se sparissero da res/font/ il sistema
+ * ripiegherebbe su Roboto e le due app si somiglierebbero soltanto nei colori —
+ * che e il modo piu comune in cui un'identita condivisa si perde per strada.
  *
- * File attesi in app/src/main/res/font/ (scaricabili da fonts.google.com):
- *   archivo_black.ttf
- *   barlow_condensed_semibold.ttf, barlow_condensed_bold.ttf
- *   barlow_regular.ttf, barlow_medium.ttf, barlow_semibold.ttf
+ * I sei .ttf stanno in app/src/main/res/font/ e sono nel repo: sono sotto SIL
+ * Open Font License (vedi LICENZE-CARATTERI.txt alla radice), che permette di
+ * imbarcarli. In res/ i nomi vanno in minuscolo con trattini bassi, e nella
+ * cartella possono vivere SOLO file .ttf/.otf/.ttc/.xml: un LEGGIMI.md li
+ * dentro ha gia fermato un build.
  */
 
 val Display = FontFamily(Font(R.font.archivo_black, FontWeight.Black))
@@ -37,6 +38,7 @@ val TipografiaConvocami = Typography(
     // I numeri grandi: OVR, contatore iscrizioni, forza delle squadre
     displayLarge = TextStyle(fontFamily = Display, fontSize = 46.sp, letterSpacing = (-1.4).sp),
     displayMedium = TextStyle(fontFamily = Display, fontSize = 34.sp, letterSpacing = (-1).sp),
+    displaySmall = TextStyle(fontFamily = Display, fontSize = 28.sp, letterSpacing = (-0.6).sp),
     headlineMedium = TextStyle(fontFamily = Display, fontSize = 24.sp, letterSpacing = (-0.3).sp),
     titleLarge = TextStyle(fontFamily = Display, fontSize = 19.sp),
 

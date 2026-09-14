@@ -9,7 +9,9 @@
       ogni avvio da freddo sbatteva in faccia un lampo bianco. Non e un dettaglio
       di gusto, e la prima cosa che l'occhio registra dell'app.
 
-      Il fondo e #070B08, lo stesso --notte di design/tokens.json e di Theme.kt.
+      Il fondo e #070B08, lo stesso valore "notte" di design/tokens.json e di
+      Theme.kt. (Niente doppio trattino in questi commenti: dentro un commento
+      XML e vietato dallo standard, e aapt blocca il build.)
     -->
     <style name="Theme.Convocami" parent="android:Theme.Material.NoActionBar">
         <item name="android:windowBackground">@color/notte</item>

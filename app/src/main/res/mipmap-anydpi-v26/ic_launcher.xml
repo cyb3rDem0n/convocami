@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Icona adattiva: fondo "notte" pieno, la C in oro figurina sopra. Il manifest
+  chiedeva @mipmap/ic_launcher e la risorsa non esisteva: aapt si fermava li.
+  Con minSdk 26 questa definizione copre ogni dispositivo supportato.
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/notte" />
+    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
+    <monochrome android:drawable="@mipmap/ic_launcher_foreground" />
+</adaptive-icon>

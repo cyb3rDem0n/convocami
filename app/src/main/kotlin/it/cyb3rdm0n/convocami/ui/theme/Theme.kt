@@ -27,24 +27,25 @@ import androidx.compose.ui.graphics.Color
  */
 
 // Fondali
-private val Notte = Color(0xFF070B08)   // nero con deriva verde
-private val Erba = Color(0xFF0E1712)    // superfici
-private val Erba2 = Color(0xFF14201A)   // superfici sollevate
-private val Linea = Color(0xFF1E2C24)   // bordi
+val Notte = Color(0xFF070B08)   // nero con deriva verde
+val Erba = Color(0xFF0E1712)    // superfici
+val Erba2 = Color(0xFF14201A)   // superfici sollevate
+val Linea = Color(0xFF1E2C24)   // bordi
 
 // Accenti
-private val Verde = Color(0xFF2BE07A)      // contatori, stati, azione primaria
+val Verde = Color(0xFF2BE07A)      // contatori, stati, azione primaria
 private val VerdeCupo = Color(0xFF1A8F4F)
 private val Oro = Color(0xFFE9C46A)        // solo figurina ed etichette guadagnate
 
 // Testo
-private val Gesso = Color(0xFFEDF2EC)
-private val Fumo = Color(0xFF8FA396)
+val Gesso = Color(0xFFEDF2EC)
+val Fumo = Color(0xFF8FA396)
+val Fumo2 = Color(0xFF5C6D62)
 
 // Semantici: separati dall'accento, perche "buono" e "il colore del marchio"
 // non sono la stessa informazione
-private val Rosso = Color(0xFFD9705F)
-private val Ambra = Color(0xFFD79A4A)
+val Rosso = Color(0xFFD9705F)
+val Ambra = Color(0xFFD79A4A)
 
 /** Le due squadre. Non sono decorazione: sono il sistema di colore della partita. */
 val SquadraBianca = Color(0xFFF1F4F0)

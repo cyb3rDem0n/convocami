@@ -2,6 +2,7 @@ package it.cyb3rdm0n.convocami.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -30,6 +31,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -44,6 +46,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -52,6 +55,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import it.cyb3rdm0n.convocami.R
 import it.cyb3rdm0n.convocami.ui.theme.Ambra
 import it.cyb3rdm0n.convocami.ui.theme.Erba
 import it.cyb3rdm0n.convocami.ui.theme.Erba2
@@ -63,7 +67,12 @@ import it.cyb3rdm0n.convocami.ui.theme.Notte
 import it.cyb3rdm0n.convocami.ui.theme.Rosso
 import it.cyb3rdm0n.convocami.ui.theme.Verde
 
-enum class Destinazione { Accesso, Gruppi, Partite }
+enum class Destinazione {
+    Accesso,
+    Gruppi,
+    Partite,
+    NuovaPartita,
+}
 
 enum class StatoContenuto { Contenuto, Caricamento, Errore, Vuoto }
 
@@ -76,18 +85,27 @@ private val SfondoStadio = Brush.radialGradient(
 
 @Composable
 fun Convocami(destinazione: Destinazione, vaiA: (Destinazione) -> Unit) {
-    Box(Modifier.fillMaxSize().background(SfondoStadio)) {
-        when (destinazione) {
-            Destinazione.Accesso -> Accesso { vaiA(Destinazione.Gruppi) }
-            Destinazione.Gruppi -> SelezioneGruppo(
-                stato = StatoContenuto.Contenuto,
-                apriGruppo = { vaiA(Destinazione.Partite) },
-                indietro = { vaiA(Destinazione.Accesso) },
-            )
-            Destinazione.Partite -> ListaPartite(
-                stato = StatoContenuto.Contenuto,
-                indietro = { vaiA(Destinazione.Gruppi) },
-            )
+    // Box non propaga il colore di Material: Surface impedisce che i Text
+    // senza colore esplicito tornino neri sul nostro sfondo scuro.
+    Surface(color = Color.Transparent, contentColor = Gesso) {
+        Box(Modifier.fillMaxSize().background(SfondoStadio)) {
+            when (destinazione) {
+                Destinazione.Accesso -> Accesso { vaiA(Destinazione.Gruppi) }
+                Destinazione.Gruppi -> SelezioneGruppo(
+                    stato = StatoContenuto.Contenuto,
+                    apriGruppo = { vaiA(Destinazione.Partite) },
+                    indietro = { vaiA(Destinazione.Accesso) },
+                )
+                Destinazione.Partite -> ListaPartite(
+                    stato = StatoContenuto.Contenuto,
+                    nuovaPartita = { vaiA(Destinazione.NuovaPartita) },
+                    indietro = { vaiA(Destinazione.Gruppi) },
+                )
+                Destinazione.NuovaPartita -> NuovaPartita(
+                    pubblica = { vaiA(Destinazione.Partite) },
+                    indietro = { vaiA(Destinazione.Partite) },
+                )
+            }
         }
     }
 }
@@ -120,7 +138,12 @@ private fun Accesso(continua: () -> Unit) {
 }
 
 @Composable
-private fun Campo(titolo: String, segreto: Boolean, tipo: KeyboardType = KeyboardType.Text) {
+private fun Campo(
+    titolo: String,
+    segreto: Boolean = false,
+    tipo: KeyboardType = KeyboardType.Text,
+    suggerimento: String = if (segreto) "Almeno 8 caratteri" else "nome@esempio.it",
+) {
     var testo by rememberSaveable { mutableStateOf("") }
     Column {
         Text(titolo, style = MaterialTheme.typography.labelMedium, color = Fumo2)
@@ -129,7 +152,7 @@ private fun Campo(titolo: String, segreto: Boolean, tipo: KeyboardType = Keyboar
             value = testo,
             onValueChange = { testo = it },
             singleLine = true,
-            placeholder = { Text(if (segreto) "Almeno 8 caratteri" else "nome@esempio.it") },
+            placeholder = { Text(suggerimento) },
             visualTransformation = if (segreto) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
             keyboardOptions = KeyboardOptions(keyboardType = if (segreto) KeyboardType.Password else tipo),
             shape = RoundedCornerShape(10.dp),
@@ -182,7 +205,7 @@ private fun SchedaGruppo(nome: String, zona: String, dettaglio: String, iniziali
 }
 
 @Composable
-fun ListaPartite(stato: StatoContenuto, indietro: () -> Unit) {
+fun ListaPartite(stato: StatoContenuto, nuovaPartita: () -> Unit, indietro: () -> Unit) {
     SchermataScorrevole {
         Testata("BICOCCA REGION", "Prossime partite", indietro)
         when (stato) {
@@ -193,10 +216,61 @@ fun ListaPartite(stato: StatoContenuto, indietro: () -> Unit) {
                 SchedaPartita("DOMANI · 21:00", "CENTRO SPORTIVO AURORA", "8 VS 8", 13, 16, "2 POSTI, POI RISERVA", "CI SEI", true)
                 SchedaPartita("GIO 24 SET · 20:30", "SPORTING BICOCCA", "7 VS 7", 14, 14, "LISTA CONVOCATI CHIUSA", "AL COMPLETO", false)
                 Spacer(Modifier.height(10.dp))
-                AzionePrimaria("APRI UNA PARTITA") {}
+                AzionePrimaria(
+                    testo = "APRI UNA PARTITA",
+                    azione = nuovaPartita,
+                )
             }
         }
     }
+}
+
+@Composable
+private fun NuovaPartita(pubblica: () -> Unit, indietro: () -> Unit) {
+    var formato by rememberSaveable { mutableStateOf(8) }
+    SchermataScorrevole {
+        Testata("BICOCCA REGION", "Apri una partita", indietro)
+        Text(
+            "Imposta la convocazione. Potrai controllare iscritti e riserve dalla schermata partita.",
+            style = MaterialTheme.typography.bodyLarge,
+            color = Fumo,
+        )
+        Spacer(Modifier.height(22.dp))
+        Campo("DATA E ORA", suggerimento = "24/09/2026 · 21:00")
+        Spacer(Modifier.height(14.dp))
+        Campo("CAMPO", suggerimento = "Centro sportivo Aurora")
+        Spacer(Modifier.height(14.dp))
+        Campo("QUOTA A TESTA", tipo = KeyboardType.Decimal, suggerimento = "7,50 €")
+        Spacer(Modifier.height(18.dp))
+        Text("FORMATO", style = MaterialTheme.typography.labelMedium, color = Fumo2)
+        Spacer(Modifier.height(7.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SceltaFormato("7 VS 7", formato == 7, Modifier.weight(1f)) { formato = 7 }
+            SceltaFormato("8 VS 8", formato == 8, Modifier.weight(1f)) { formato = 8 }
+        }
+        Spacer(Modifier.height(28.dp))
+        AzionePrimaria("PUBBLICA CONVOCAZIONE", pubblica)
+        Text(
+            "Prototipo locale: il collegamento della pubblicazione a Supabase arriverà con il flusso dati.",
+            style = MaterialTheme.typography.bodySmall,
+            color = Fumo2,
+            modifier = Modifier.padding(top = 12.dp),
+        )
+    }
+}
+
+@Composable
+private fun SceltaFormato(testo: String, selezionato: Boolean, modifier: Modifier, scegli: () -> Unit) {
+    Button(
+        onClick = scegli,
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, if (selezionato) Verde else Linea),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (selezionato) Verde.copy(alpha = .14f) else Erba2,
+            contentColor = if (selezionato) Verde else Gesso,
+        ),
+        modifier = modifier.height(50.dp),
+    ) { Text(testo, style = MaterialTheme.typography.labelLarge) }
 }
 
 @Composable
@@ -279,9 +353,26 @@ private fun Testata(occhiello: String, titolo: String, indietro: () -> Unit) {
 }
 
 @Composable private fun Marchio() = Row(verticalAlignment = Alignment.CenterVertically) {
-    Box(Modifier.size(11.dp).background(Verde, RoundedCornerShape(2.dp)))
+    LogoConvocami()
     Spacer(Modifier.width(9.dp))
     Text("CONVOCAMI", style = MaterialTheme.typography.titleLarge)
+}
+
+@Composable
+private fun LogoConvocami() {
+    Box(
+        modifier = Modifier
+            .size(42.dp)
+            .background(Erba2, RoundedCornerShape(10.dp))
+            .border(1.dp, Linea, RoundedCornerShape(10.dp)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Image(
+            painter = painterResource(R.mipmap.ic_launcher_foreground),
+            contentDescription = "Logo Convocami",
+            modifier = Modifier.size(38.dp),
+        )
+    }
 }
 
 @Composable private fun Occhiello(testo: String) = Text(testo, style = MaterialTheme.typography.labelMedium, color = Verde)

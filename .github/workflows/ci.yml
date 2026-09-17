@@ -60,7 +60,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      # setup-android include ancora il vecchio pacchetto `tools` fra quelli
+      # predefiniti. Quel pacchetto non esiste piu nel repository Android e fa
+      # fallire sdkmanager prima ancora che inizi la build. Dichiariamo quindi
+      # soltanto i pacchetti effettivamente richiesti da compileSdk 35.
       - uses: android-actions/setup-android@v3
+        with:
+          packages: >-
+            platform-tools
+            platforms;android-35
+            build-tools;35.0.0
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: ${{ env.VERSIONE_GRADLE }}

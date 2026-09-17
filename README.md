@@ -1,219 +1,155 @@
 # Convocami
 
-App Android per organizzare le partite di calcetto a 7 e a 8. Si apre la
-partita, ci si iscrive, al quattordicesimo le iscrizioni si chiudono da sole e
-arriva la conferma con data, ora e campo. Le squadre le sorteggia l'app:
-equilibrate, ma diverse ogni volta.
+**Organizza la partita. Convoca il gruppo. Scendi in campo.**
 
-**Convocami**: i suoi utenti sono italiani, e la parola *è* la funzione. Il
-package è `it.cyb3rdm0n.convocami`, e lo è per sempre — dopo la pubblicazione
-sul Play Store quell'identificatore non si cambia più, ed è l'unico pezzo del
-progetto che non ammette ripensamenti.
+Convocami è una piattaforma per gestire partite di calcetto a 7 e a 8: riunisce
+convocazioni, lista d'attesa, composizione delle squadre e rendimento dei
+giocatori in un unico flusso progettato per web e Android.
 
-## Stato
+L'obiettivo è semplice: togliere lavoro a chi organizza e rendere ogni partita
+più equilibrata, senza trasformare la chat del gruppo in un gestionale.
 
-**Chi riprende lo sviluppo parte da
-[docs/passaggio-a-code.md](docs/passaggio-a-code.md)**: stato reale voce per
-voce, caso d'uso completo e lavoro diviso in blocchi, ciascuno con il criterio
-per dirlo finito. Le regole che non devono mai uscire dal contesto stanno in
-[CLAUDE.md](CLAUDE.md).
+## Cosa fa
 
-Il motore di sorteggio è scritto, compilato e coperto da 72 test eseguiti. Lo
-schema del database è stato eseguito su un Postgres vero e i trigger sono stati
-provati da capo a fondo. La web app è completa nelle schermate di accesso,
-gruppo, partita e iscrizione, **ma non è mai stata eseguita contro un database
-vero**: qui la rete verso supabase.com era chiusa. È il primo passo di chi
-continua. L'app Android si compila e si installa, ma mostra ancora una
-schermata segnaposto.
+- **Gestisce le convocazioni** in ordine di iscrizione, chiudendole
+  automaticamente al raggiungimento della capienza.
+- **Organizza la lista d'attesa** e promuove la prima riserva quando si libera
+  un posto.
+- **Propone squadre equilibrate e sempre diverse**, considerando livello,
+  ruoli e storico delle formazioni.
+- **Impara dalle partite** attraverso nomine rapide per fase di gioco: difesa,
+  attacco, regia e porta.
+- **Tutela i dati del gruppo** con Row Level Security e profili pubblici privi
+  dell'indirizzo email.
+- **Mantiene un'esperienza coerente** tra web e Android grazie a un'identità
+  visiva condivisa.
 
-| | Fase | |
-|---|---|---|
-| ✅ | **0 · Impianto** | Schema SQL, motore di sorteggio, progetto compilabile |
-| ~ | 1 · Identità e gruppo | Registrazione e codice d'invito fatti sul web; manca la foto |
-| ~ | 2 · Partite e convocazioni | Iscrizioni in tempo reale e chiusura automatica fatte; mancano push ed email |
-| | 3 · Squadre | Taratura skill, schermata del campo, notifica formazione |
-| | 4 · Rendimento | Risultato, marcatori, evoluzione skill, classifiche |
-| | 5 · Android | Le stesse schermate sul telefono |
-| | 6 · Pubblicazione | Play Store |
+## Come funziona
 
-## Com'è fatto
+1. L'organizzatore crea una partita con data, campo, formato e quota.
+2. I giocatori si iscrivono; raggiunta la capienza, le iscrizioni successive
+   entrano in lista d'attesa.
+3. Il motore genera squadre bilanciate. L'organizzatore può rifinire la
+   formazione prima di pubblicarla.
+4. Dopo la partita, il gruppo segnala le prestazioni migliori con pochi tocchi.
+5. Ruoli e valori evolvono nel tempo, migliorando i sorteggi successivi.
 
+Il sorteggio non cerca soltanto la divisione con lo scarto minimo: seleziona
+una soluzione tra le migliori disponibili e penalizza gli abbinamenti già
+visti. Il risultato resta riproducibile grazie al salvataggio del seme casuale.
+Quando i dati non sono ancora sufficienti, il sistema applica un sorteggio
+puro invece di attribuire ai giocatori caratteristiche non osservate.
+
+## Architettura
+
+```text
+app/                 client Android — Kotlin e Jetpack Compose
+core/teamdraw/       motore di sorteggio — Kotlin puro, senza dipendenze Android
+db/migrations/       schema PostgreSQL, trigger e policy Row Level Security
+db/locale/           ambiente e verifiche locali del database
+web/                 client web statico — HTML, CSS e JavaScript
+design/              token visivi condivisi e schermate di riferimento
+docs/                documentazione tecnica, avvio e distribuzione
+tools/proto/         prototipo usato per validare l'algoritmo
 ```
-app/                 app Android — Kotlin, Jetpack Compose, Material 3
-core/teamdraw/       motore di sorteggio, profili e voto — Kotlin puro
-db/migrations/       schema Postgres, con trigger e Row Level Security
-web/                 web app — HTML, CSS e un modulo ES, senza passaggio di build
-design/              tokens.json (colori e font, fonte unica) e schermate.html
-docs/                impianto tecnico, passaggio di consegne, build e pubblicazione
-tools/proto/         prototipo Python usato per validare l'algoritmo
-```
 
-`design/schermate.html` si apre nel browser e basta: sono le quattro schermate
-di riferimento — convocazione, formazione, figurina, voto — da cui si legge la
-direzione grafica meglio che da qualunque descrizione.
+Le responsabilità sono separate in modo netto:
 
-Due scelte meritano una spiegazione.
+- il **database** garantisce atomicità e vincoli su iscrizioni, ritiri e
+  promozione delle riserve;
+- `core/teamdraw` contiene l'algoritmo di composizione delle squadre ed è
+  indipendente dai client;
+- la **web app** non richiede build, package manager o framework;
+- il client **Android** usa Compose e condivide con il web i valori definiti in
+  `design/tokens.json`.
 
-**Il motore di sorteggio è un modulo Kotlin senza dipendenze da Android.** Gira
-sul telefono di chi organizza, quindi non costa un centesimo di server, si testa
-con una JVM in un secondo, e se un domani serve spostarlo dentro un backend si
-ricompila senza modifiche.
+## Stato del progetto
 
-**Tutto l'accesso ai dati passa da interfacce**, non direttamente dall'SDK di
-Supabase. Sostituire Supabase con un backend proprio significa scrivere una
-nuova implementazione, non riscrivere l'app.
+| Area | Stato |
+|---|---|
+| Schema dati, trigger e policy di accesso | **Completato e verificato** |
+| Motore di sorteggio e modello dei ruoli | **Completato e coperto da test** |
+| Web: accesso, gruppi, partite e iscrizioni | **Implementato, da validare end-to-end su Supabase** |
+| Android: fondazioni UI e primo flusso | **In sviluppo** |
+| Formazioni, referto e statistiche nei client | **Pianificato** |
+| Notifiche e distribuzione sugli store | **Pianificato** |
 
-## Partire
+Lo stato operativo dettagliato, incluse le attività successive e i relativi
+criteri di completamento, è disponibile in
+[`docs/passaggio-a-code.md`](docs/passaggio-a-code.md).
+
+## Avvio rapido
+
+### Motore di sorteggio
+
+Requisito: JDK 17. Se il wrapper Gradle non è presente, può essere generato con
+`gradle wrapper --gradle-version 8.12`.
 
 ```bash
-./gradlew :core:teamdraw:test   # 72 test del motore
-./gradlew assembleDebug         # APK installabile
+./gradlew :core:teamdraw:test
 ```
 
-Per l'APK non serve installare niente: la CI del repo lo costruisce su GitHub
-e lo lascia scaricabile dalla pagina della run. Se invece vuoi compilare in
-locale, il binario del wrapper non è versionato e la prima volta lo generi con
-`gradle wrapper --gradle-version 8.12`, oppure aprendo il progetto in Android
-Studio, che lo crea da solo. Il perché è in
-[docs/build-e-deploy.md](docs/build-e-deploy.md).
+### Web app
 
-Per avere la web app in mano e farla provare agli altri, il percorso più corto
-è **[docs/primo-avvio.md](docs/primo-avvio.md)**: venti minuti, e non serve né
-l'ambiente Android né un server. Per la firma, il Play Store e il resto:
-**[docs/build-e-deploy.md](docs/build-e-deploy.md)**.
+Inserisci URL e chiave anon del progetto Supabase in `web/config.js`, quindi:
 
-Il database va creato una volta sola su Supabase eseguendo
-`db/migrations/001_schema.sql`. Chiavi e percorso dell'SDK vanno in
-`local.properties`, che non è versionato.
+```bash
+cd web
+python3 -m http.server 8000
+```
 
-## Il sorteggio
+Apri [http://localhost:8000](http://localhost:8000). La configurazione completa
+di database, autenticazione e deploy è descritta in
+[`docs/primo-avvio.md`](docs/primo-avvio.md).
 
-Il problema è che due requisiti si contraddicono: le squadre devono essere
-**eque** e devono essere **diverse ogni volta**. Un ottimizzatore che cerca la
-divisione perfetta, con gli stessi quattordici convocati, dà sempre lo stesso
-risultato.
+### App Android
 
-La soluzione: si generano 60 partizioni indipendenti, ciascuna raffinata con una
-ricerca locale, e poi si **estrae a sorte fra tutte quelle entro l'8% dalla
-migliore**. Il seme viene salvato, quindi un sorteggio è sempre riproducibile.
+Con Android SDK configurato:
 
-La varietà però ha bisogno dello storico: con una rosa fissa e storico vuoto
-escono solo 9 formazioni distinte su 25, con lo storico che si accumula 25 su 25.
-È la penalità anti-ripetizione a fare il lavoro, e riguarda il primo sorteggio di
-ogni gruppo nuovo.
+```bash
+./gradlew assembleDebug
+```
 
-Una funzione di costo somma ciò che rende sgradevole una divisione: scarto di
-forza complessivo, squilibrio per reparto, differenza fra i due più forti,
-coppie che finiscono sempre insieme, e una penalità leggera per chi gioca fuori
-ruolo.
+L'APK viene generato in `app/build/outputs/apk/debug/app-debug.apk`. In
+alternativa, la pipeline GitHub Actions produce automaticamente un APK di debug
+scaricabile dagli artifact della run. Per ambiente locale, firma e
+pubblicazione consulta [`docs/build-e-deploy.md`](docs/build-e-deploy.md).
 
-### I ruoli di movimento non sono fissi
+## Qualità e sicurezza
 
-Il ruolo non si dichiara all'iscrizione — se si dichiarasse, si dichiarerebbero
-tutti attaccanti — ma si deduce da come è andata in campo. Ogni giocatore ha una
-**propensione**: quattro valori che dicono dove tende a rendere meglio, più una
-**confidenza** che cresce con le partite. Chi è nuovo ha confidenza zero e il
-ruolo non lo influenza affatto, così l'app non finge di sapere dove metterlo.
+- Il motore è verificato da **72 test** e da simulazioni su stagioni complete.
+- Le regole del database sono coperte da **33 prove** eseguite su PostgreSQL.
+- Ogni tabella applicativa usa Row Level Security e appartiene a un gruppo.
+- I client leggono esclusivamente i profili pubblici; l'email resta privata.
+- Le operazioni concorrenti critiche sono risolte nel database, non nel client.
 
-Chi vuole può indicare un **profilo di partenza** all'iscrizione, e sono **due
-ruoli, non uno**: con una casella sola si dichiarano tutti attaccanti e non
-resta niente da usare, con due si dice di fatto dove *non* si gioca, che è
-l'informazione utile. Serve a non sorteggiare del tutto alla cieca la prima
-domenica, compare come *"Attaccante o centrocampista · di partenza"*, e i fatti
-lo scavalcano in poche partite — tutti e due.
+Per eseguire le prove locali del database:
 
-L'etichetta compare solo con abbastanza partite e un distacco netto. Altrimenti
-resta **Jolly**, che non è l'assenza di un dato ma un'etichetta positiva, e nel
-calcetto è anche la più frequente.
+```bash
+createdb convocami
+psql -d convocami -f db/locale/00_finta_supabase.sql
+for migration in db/migrations/0*.sql; do
+  psql -d convocami -f "$migration"
+done
+psql -d convocami -f db/locale/01_prova_regole.sql
+```
 
-### Il portiere invece si dichiara, ed è un vincolo
+## Documentazione
 
-Fare il portiere è un'identità, non una cosa in cui si scivola dopo dieci minuti
-buoni fra i pali: chi para, para tutte le domeniche. Quindi quel ruolo non si
-deduce dai voti — lo imposta la persona iscrivendosi o l'organizzatore — e in
-porta ci va, senza che nessuna ottimizzazione possa spostarlo. Se per una volta
-deve giocare in campo, è l'organizzatore a farlo a mano.
-
-L'esclusione vale in entrambe le direzioni, ed è la seconda che sorprende: un
-centrocampista che se la cava durante una turnazione raccoglie nomine per le
-parate e, senza questa regola, si ritroverebbe etichettato portiere e poi
-spedito fra i pali dal vincolo, per sempre.
-
-Prima ancora, la versione che trattava la porta come un costo da bilanciare
-schierava i portieri veri in campo, perché due improvvisati sono più *simili fra
-loro* di due bravi e così il conto tornava prima.
-
-Quando i portieri mancano — che è la norma, non l'eccezione: su 40 partite
-simulate solo 24 ne avevano due — l'app divide i minuti fra tre giocatori e dà
-la precedenza a chi in porta ci è finito meno volte. Senza quel criterio, chi ha
-qualche riflesso in più diventa il portiere fisso della comitiva.
-
-### Quando non si sa, lo si dice
-
-Il sorteggio dichiara sempre con quanta informazione ha lavorato: *squadre fatte
-con ruoli e rendimenti*, *ruoli ancora incerti*, oppure *troppi giocatori nuovi
-per sapere come dividervi: sorteggio puro*. Quest'ultimo è casuale e non
-alfabetico di proposito — l'alfabetico darebbe sempre le stesse due squadre agli
-stessi quattordici, fingendo per giunta di essere un criterio.
-
-### Il voto di fine partita
-
-Si vota per **fase di gioco**, non per ruolo: difesa, attacco, regia, porta. Un
-difensore può essere il miglior regista in campo, e votando il ruolo quel dato
-andrebbe perso. Ed è una **nomina**, non un punteggio — quattro nomi, quattro
-tocchi — perché un voto da 1 a 10 per tredici persone su quattro fasi sono
-cinquantadue caselle che nessuno compila dopo la partita.
-
-Ogni fase alimenta ciò che le compete: difesa → *difesa*, attacco → *tiro*,
-regia → *passaggio* e *tecnica*, porta → *parate*. È questo che tiene in piedi
-le sette voci: un voto generico "ha giocato bene" le muoverebbe tutte insieme
-fino a renderle decorative.
-
-### Le squadre sono una proposta
-
-L'organizzatore le rimaneggia prima di chiudere la partita, e vede lo scarto di
-forza aggiornarsi mentre sposta. I ruoli mostrati descrivono come si parte, non
-come si deve giocare. Formazione sorteggiata e formazione finale si conservano
-separate, altrimenti l'evoluzione attribuirebbe i rendimenti alla casella
-sbagliata.
-
-### Verificato, non solo scritto
-
-I numeri qui sotto escono dal motore compilato, non da una stima.
-
-| | 7v7 | 8v8 |
-|---|---|---|
-| Scarto di forza fra le squadre | 0,28% | 0,22% |
-| Formazioni distinte su 40 partite | 40/40 | 40/40 |
-| Violazioni del vincolo portiere | 0/40 | 0/40 |
-| Tempo per sorteggio | ~120 ms | ~140 ms |
-
-Partendo da **zero dati** sui ruoli di movimento, con i soli voti dei compagni:
-dopo 10 partite 18 giocatori su 20 hanno un'etichetta e sono tutte corrette;
-dopo una stagione, 20 su 20.
-
-Nello scenario peggiore della porta — rosa di 16 senza nemmeno un portiere
-dichiarato, 40 partite — tutti e 16 hanno fatto esattamente 300 minuti fra i
-pali.
-
-## Le skill
-
-Sette attributi su scala 1–99: velocità, tiro, passaggio, tecnica, difesa,
-fisico, parate. Tutti partono da 50, e chi organizza alza i valori iniziali di
-chi già si sa che gioca bene.
-
-Il valore in campo si calcola sempre rispetto al ruolo, con pesi diversi per
-reparto, moltiplicato per l'affinità di quel giocatore a quella zona del campo.
-
-Le skill si muovono con le nomine ricevute, ognuna sulla voce che le compete. Il
-freno contro l'inflazione è nei rendimenti decrescenti: salire da 92 costa molto
-più che da 50. Senza quel freno, dopo un anno la comitiva è tutta a 99 e i numeri
-non dicono più niente. Ogni variazione è tracciata, così si può sempre rispondere
-a «perché sono sceso?».
-
-Dettagli in [docs/impianto-tecnico.md](docs/impianto-tecnico.md).
+- [Primo avvio](docs/primo-avvio.md) — dalla configurazione Supabase alla web
+  app online.
+- [Impianto tecnico](docs/impianto-tecnico.md) — modello dati, algoritmo e
+  decisioni architetturali.
+- [Build e deploy](docs/build-e-deploy.md) — APK, firma e pubblicazione.
+- [Direzione visiva Android](docs/direzione-visiva-android.md) — principi e
+  regole dell'interfaccia.
+- [Passaggio di consegne](docs/passaggio-a-code.md) — stato puntuale e roadmap
+  di implementazione.
 
 ## Licenza
 
-Tutti i diritti riservati. Il codice è pubblicato per consultazione; non è
-concesso alcun permesso di uso, copia, modifica o distribuzione.
+Copyright © 2026 Giuseppe D'Agostino. Tutti i diritti riservati.
+
+Il codice è pubblicato esclusivamente per consultazione. Non è concesso alcun
+permesso di utilizzo, copia, modifica o distribuzione. Consulta
+[`LICENSE`](LICENSE) per i termini completi.
